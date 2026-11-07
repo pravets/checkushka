@@ -86,7 +86,7 @@ public final class CheckRunner {
       units += analyze(project, target, targetChecks, found);
     }
 
-    var issues = found.stream()
+    var issues = CheckResults.distinct(found).stream()
       .filter(issue -> issue.severity().atLeast(settings.minSeverity()))
       .filter(issue -> !settings.isIgnored(issue.key(), issue.location().mdoRef()))
       .sorted(ORDER)

@@ -35,8 +35,11 @@ import ru.pravets.checkushka.core.source.SourceLocation;
  * Проверка форм с незаполненным заголовком.
  *
  * <p>Правило фиксирует пустое значение заголовка и не утверждает, что заголовок обязателен
- * всегда: для части форм платформа подставляет его автоматически. При необходимости проверку
+ * всегда: часть форм получает заголовок автоматически. Если для проекта это норма, проверку
  * отключают в конфигурации.
+ *
+ * <p>Файл формы ищется с учётом владельца: имена форм уникальны только внутри объекта, поэтому
+ * у разных документов штатно есть формы с одинаковым именем.
  */
 @CheckMetadata(
   key = FormWithoutTitleCheck.KEY,
@@ -68,13 +71,22 @@ public final class FormWithoutTitleCheck implements MetadataCheck {
       return List.of();
     }
 
-    var file = context.project().layout().formFile(null, form.getName())
-      .orElse(context.project().root());
+    var project = context.project();
+    var owner = project.ownerOf(form);
+    var file = project.locationOf(form).orElse(project.root());
+    var mdoRef = owner
+      .map(reference -> reference + ".Form." + form.getName())
+      .orElse("CommonForm." + form.getName());
+    var message = owner
+      .map(reference -> "У формы «" + form.getName() + "» объекта «" + reference
+        + "» не заполнен заголовок")
+      .orElse("У формы «" + form.getName() + "» не заполнен заголовок");
+
     return List.of(new CheckResult(
       KEY,
-      "У формы «" + form.getName() + "» не заполнен заголовок",
+      message,
       META.severity(),
-      SourceLocation.of(file, null, form.getName()),
+      SourceLocation.of(file, null, mdoRef),
       META.minutesToFix()));
   }
 }

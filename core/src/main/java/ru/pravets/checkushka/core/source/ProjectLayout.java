@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Соответствие объектов метаданных и форм их файлам в проекте.
@@ -39,18 +40,28 @@ import java.util.Optional;
  *   <li>объект формы Designer — {@code <Объект>/Forms/<Форма>.xml};</li>
  *   <li>форма EDT — {@code <Объект>/Forms/<Форма>/Form.form}.</li>
  * </ul>
+ *
+ * <p>Имена форм уникальны только внутри объекта: у разных документов штатно встречаются формы
+ * с одинаковым именем ({@code ФормаДокумента}). Поэтому формы индексируются по паре
+ * «владелец + имя», а поиск без владельца отдаёт файл только при уникальном имени.
  */
 public final class ProjectLayout {
 
   private static final int MAX_DEPTH = 12;
   private static final List<String> METADATA_EXTENSIONS = List.of(".xml", ".mdo");
+  private static final char KEY_SEPARATOR = '\u0001';
 
   private final Map<String, Path> objectFiles;
-  private final Map<String, Path> formFiles;
+  private final Map<String, Path> formsByOwner;
+  private final Map<String, Path> formsByName;
+  private final Map<String, AtomicInteger> formNameCounts;
 
-  private ProjectLayout(Map<String, Path> objectFiles, Map<String, Path> formFiles) {
+  private ProjectLayout(Map<String, Path> objectFiles, Map<String, Path> formsByOwner,
+                        Map<String, Path> formsByName, Map<String, AtomicInteger> formNameCounts) {
     this.objectFiles = Map.copyOf(objectFiles);
-    this.formFiles = Map.copyOf(formFiles);
+    this.formsByOwner = Map.copyOf(formsByOwner);
+    this.formsByName = Map.copyOf(formsByName);
+    this.formNameCounts = Map.copyOf(formNameCounts);
   }
 
   /**
@@ -61,14 +72,17 @@ public final class ProjectLayout {
    */
   public static ProjectLayout scan(Path root) {
     var objects = new HashMap<String, Path>();
-    var forms = new HashMap<String, Path>();
+    var byOwner = new HashMap<String, Path>();
+    var byName = new HashMap<String, Path>();
+    var nameCounts = new HashMap<String, AtomicInteger>();
     try (var stream = Files.walk(root, MAX_DEPTH)) {
       var projectRoot = root.toAbsolutePath().normalize();
-      stream.filter(Files::isRegularFile).forEach(path -> index(projectRoot, path, objects, forms));
+      stream.filter(Files::isRegularFile)
+        .forEach(path -> index(projectRoot, path, objects, byOwner, byName, nameCounts));
     } catch (IOException e) {
       throw new ProjectException("Не удалось прочитать структуру проекта: " + root, e);
     }
-    return new ProjectLayout(objects, forms);
+    return new ProjectLayout(objects, byOwner, byName, nameCounts);
   }
 
   /**
@@ -82,31 +96,53 @@ public final class ProjectLayout {
   }
 
   /**
-   * Возвращает файл формы, принадлежащей объекту метаданных.
+   * Возвращает файл формы.
    *
-   * @param ownerMdoRef ссылка на объект-владелец формы (может быть {@code null})
+   * @param ownerMdoRef ссылка на объект-владелец формы; {@code null} — владелец неизвестен
    * @param formName    имя формы
    * @return файл формы или пустой результат
    */
   public Optional<Path> formFile(String ownerMdoRef, String formName) {
-    var owner = fileOf(ownerMdoRef);
-    if (owner.isPresent() && owner.get().getParent() != null) {
-      var formsDir = owner.get().getParent().resolve("Forms");
-      for (var extension : METADATA_EXTENSIONS) {
-        var candidate = formsDir.resolve(formName + extension);
-        if (Files.isRegularFile(candidate)) {
-          return Optional.of(candidate);
-        }
-      }
-      var edtCandidate = formsDir.resolve(formName).resolve("Form.form");
-      if (Files.isRegularFile(edtCandidate)) {
-        return Optional.of(edtCandidate);
-      }
+    if (formName == null || formName.isBlank()) {
+      return Optional.empty();
     }
-    return Optional.ofNullable(formName).map(formFiles::get);
+    if (ownerMdoRef != null && !ownerMdoRef.isBlank()) {
+      var ownerName = objectName(ownerMdoRef);
+      var indexed = formsByOwner.get(ownerName + KEY_SEPARATOR + formName);
+      if (indexed != null) {
+        return Optional.of(indexed);
+      }
+      return formFileNextToOwner(ownerName, formName);
+    }
+
+    // Без владельца отдаём файл только при уникальном имени формы: иначе легко вернуть
+    // чужую форму и напечатать одно замечание вместо нескольких разных
+    var count = formNameCounts.get(formName);
+    if (count == null || count.get() != 1) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(formsByName.get(formName));
   }
 
-  private static void index(Path root, Path path, Map<String, Path> objects, Map<String, Path> forms) {
+  private Optional<Path> formFileNextToOwner(String ownerName, String formName) {
+    var ownerFile = objectFiles.get(ownerName);
+    if (ownerFile == null || ownerFile.getParent() == null) {
+      return Optional.empty();
+    }
+    var formsDir = ownerFile.getParent().resolve("Forms");
+    for (var extension : METADATA_EXTENSIONS) {
+      var candidate = formsDir.resolve(formName + extension);
+      if (Files.isRegularFile(candidate)) {
+        return Optional.of(candidate);
+      }
+    }
+    var edtCandidate = formsDir.resolve(formName).resolve("Form.form");
+    return Files.isRegularFile(edtCandidate) ? Optional.of(edtCandidate) : Optional.empty();
+  }
+
+  private static void index(Path root, Path path, Map<String, Path> objects,
+                            Map<String, Path> formsByOwner, Map<String, Path> formsByName,
+                            Map<String, AtomicInteger> formNameCounts) {
     var fileName = path.getFileName().toString();
     var dot = fileName.lastIndexOf('.');
     if (dot <= 0) {
@@ -118,12 +154,15 @@ public final class ProjectLayout {
     var parentName = parent == null || parent.getFileName() == null
       ? "" : parent.getFileName().toString();
 
+    // EDT: <Объект>/Forms/<Форма>/Form.form
     if ("form".equalsIgnoreCase(base) && "form".equals(extension)) {
-      forms.putIfAbsent(parentName, path);
+      registerForm(parent == null ? null : parent.getParent(), parentName, path,
+        formsByOwner, formsByName, formNameCounts);
       return;
     }
+    // Designer: <Объект>/Forms/<Форма>.xml
     if ("forms".equalsIgnoreCase(parentName) && "xml".equals(extension)) {
-      forms.putIfAbsent(base, path);
+      registerForm(parent, base, path, formsByOwner, formsByName, formNameCounts);
       return;
     }
     if (base.equalsIgnoreCase(parentName)) {
@@ -136,6 +175,17 @@ public final class ProjectLayout {
     if ("xml".equals(extension) && group != null && group.equals(root)) {
       objects.putIfAbsent(base, path);
     }
+  }
+
+  private static void registerForm(Path formsDir, String formName, Path path,
+                                   Map<String, Path> formsByOwner, Map<String, Path> formsByName,
+                                   Map<String, AtomicInteger> formNameCounts) {
+    var ownerDir = formsDir == null ? null : formsDir.getParent();
+    var ownerName = ownerDir == null || ownerDir.getFileName() == null
+      ? "" : ownerDir.getFileName().toString();
+    formsByOwner.putIfAbsent(ownerName + KEY_SEPARATOR + formName, path);
+    formsByName.putIfAbsent(formName, path);
+    formNameCounts.computeIfAbsent(formName, name -> new AtomicInteger()).incrementAndGet();
   }
 
   private static String objectName(String mdoRef) {

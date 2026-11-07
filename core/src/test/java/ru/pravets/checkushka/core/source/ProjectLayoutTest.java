@@ -79,6 +79,38 @@ class ProjectLayoutTest {
   }
 
   @Test
+  void findsFormByOwnerWhenNamesRepeat() throws IOException {
+    var first = touch(root.resolve("Documents/НачислениеЗарплаты/Forms/ФормаДокумента.xml"));
+    var second = touch(root.resolve("Documents/Операция/Forms/ФормаДокумента.xml"));
+
+    var layout = ProjectLayout.scan(root);
+
+    assertThat(layout.formFile("Document.НачислениеЗарплаты", "ФормаДокумента")).contains(first);
+    assertThat(layout.formFile("Document.Операция", "ФормаДокумента")).contains(second);
+  }
+
+  @Test
+  void doesNotGuessFormByAmbiguousName() throws IOException {
+    touch(root.resolve("Documents/НачислениеЗарплаты/Forms/ФормаДокумента.xml"));
+    touch(root.resolve("Documents/Операция/Forms/ФормаДокумента.xml"));
+
+    var layout = ProjectLayout.scan(root);
+
+    assertThat(layout.formFile(null, "ФормаДокумента")).isEmpty();
+  }
+
+  @Test
+  void findsEdtFormByOwner() throws IOException {
+    var first = touch(root.resolve("src/Catalogs/Товары/Forms/ItemForm/Form.form"));
+    var second = touch(root.resolve("src/Catalogs/Услуги/Forms/ItemForm/Form.form"));
+
+    var layout = ProjectLayout.scan(root);
+
+    assertThat(layout.formFile("Catalog.Товары", "ItemForm")).contains(first);
+    assertThat(layout.formFile("Catalog.Услуги", "ItemForm")).contains(second);
+  }
+
+  @Test
   void returnsEmptyForUnknownObject() {
     var layout = ProjectLayout.scan(root);
 

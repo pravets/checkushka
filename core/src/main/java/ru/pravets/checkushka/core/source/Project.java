@@ -23,15 +23,27 @@ package ru.pravets.checkushka.core.source;
 import com.github._1c_syntax.bsl.mdo.Form;
 import com.github._1c_syntax.bsl.mdo.FormOwner;
 import com.github._1c_syntax.bsl.mdo.MD;
+import com.github._1c_syntax.bsl.mdo.MDChild;
 import com.github._1c_syntax.bsl.mdo.Role;
 import com.github._1c_syntax.bsl.mdclasses.Configuration;
 import com.github._1c_syntax.bsl.mdclasses.Solution;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Разобранный проект: модель метаданных, формат выгрузки, порядок объектов и индекс файлов.
+ *
+ * <p>Формы и объекты собираются без дублей: после слияния конфигурации с расширениями одна
+ * и та же форма может встретиться несколько раз, а имена форм уникальны только внутри объекта.
  */
 public final class Project {
 
@@ -41,6 +53,9 @@ public final class Project {
   private final Solution solution;
   private final ProjectLayout layout;
   private final SourceOrder order;
+
+  private final List<Form> forms;
+  private final Map<Form, String> formOwners;
 
   /**
    * Создаёт описание проекта.
@@ -60,6 +75,10 @@ public final class Project {
     this.solution = solution;
     this.layout = layout;
     this.order = order;
+
+    var owners = new IdentityHashMap<Form, String>();
+    this.forms = solution == null ? List.of() : collectForms(owners);
+    this.formOwners = owners;
   }
 
   /**
@@ -126,26 +145,70 @@ public final class Project {
   }
 
   /**
-   * Объекты метаданных верхнего уровня.
+   * Объекты метаданных верхнего уровня без дублей.
    *
    * @return объекты
    */
   public Collection<MD> objects() {
-    return configuration().getChildrenByMdoRef().values();
+    if (solution == null) {
+      return List.of();
+    }
+    var unique = new LinkedHashMap<String, MD>();
+    configuration().getChildrenByMdoRef().values()
+      .forEach(object -> unique.putIfAbsent(object.getMdoRef(), object));
+    return List.copyOf(unique.values());
   }
 
   /**
-   * Все формы конфигурации: общие и принадлежащие объектам.
+   * Все формы конфигурации: общие и принадлежащие объектам, без дублей.
    *
    * @return формы
    */
   public List<Form> forms() {
-    var result = new java.util.ArrayList<Form>(configuration().getCommonForms());
-    configuration().getChildrenByMdoRef().values().stream()
-      .filter(FormOwner.class::isInstance)
-      .map(FormOwner.class::cast)
-      .forEach(owner -> result.addAll(owner.getForms()));
-    return List.copyOf(result);
+    return forms;
+  }
+
+  /**
+   * Ссылка на владельца формы.
+   *
+   * @param form форма
+   * @return ссылка на объект-владелец или пустой результат для общих форм
+   */
+  public Optional<String> ownerOf(Form form) {
+    var owner = formOwners.get(form);
+    if (owner != null && !owner.isBlank()) {
+      return Optional.of(owner);
+    }
+    if (form instanceof MDChild child && !child.getOwner().isEmpty()) {
+      return Optional.of(child.getOwner().getMdoRef());
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Возвращает файл формы.
+   *
+   * @param form форма
+   * @return файл формы или пустой результат, если расположение определить не удалось
+   */
+  public Optional<Path> locationOf(Form form) {
+    if (form == null || layout == null) {
+      return Optional.empty();
+    }
+    var owner = ownerOf(form);
+    if (owner.isPresent()) {
+      var owned = layout.formFile(owner.get(), form.getName());
+      if (owned.isPresent()) {
+        return owned;
+      }
+    }
+    if (owner.isEmpty() && form instanceof MD object) {
+      var own = layout.fileOf(object.getMdoRef());
+      if (own.isPresent()) {
+        return own;
+      }
+    }
+    return layout.formFile(null, form.getName());
   }
 
   /**
@@ -154,6 +217,33 @@ public final class Project {
    * @return роли
    */
   public List<Role> roles() {
-    return configuration().getRoles();
+    return solution == null ? List.of() : configuration().getRoles();
+  }
+
+  private List<Form> collectForms(Map<Form, String> owners) {
+    var collected = new ArrayList<Form>();
+    var seen = new LinkedHashSet<String>();
+
+    for (var common : configuration().getCommonForms()) {
+      var ref = common.getMdoRef();
+      if (seen.add(ref)) {
+        collected.add(common);
+        owners.put(common, "");
+      }
+    }
+
+    for (var object : configuration().getChildrenByMdoRef().values()) {
+      if (!(object instanceof FormOwner formOwner)) {
+        continue;
+      }
+      var ownerRef = object.getMdoRef();
+      for (var form : formOwner.getForms()) {
+        if (seen.add(ownerRef + '\u0001' + form.getName())) {
+          collected.add(form);
+          owners.put(form, ownerRef);
+        }
+      }
+    }
+    return Collections.unmodifiableList(collected);
   }
 }
