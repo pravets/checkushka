@@ -83,7 +83,7 @@ signing {
         ?.takeIf { it.isNotBlank() }
     isRequired = key != null
     if (key != null) {
-        useInMemoryPgpKeys(key, password)
+        useInMemoryPgpKeys(null, key, password ?: "")
     }
     sign(publishing.publications)
 }
