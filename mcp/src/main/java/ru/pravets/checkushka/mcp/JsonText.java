@@ -20,14 +20,24 @@
  */
 package ru.pravets.checkushka.mcp;
 
-/**
- * Точка входа MCP-сервера checkushka.
- *
- * <p>Реализация появится на этапе M3: транспорты {@code stdio} и {@code streamable HTTP},
- * инструменты анализа поверх {@code checkushka-core}.
- */
-public final class McpServer {
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-  private McpServer() {
+/**
+ * Сериализация результатов инструментов MCP в JSON-текст.
+ */
+final class JsonText {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  private JsonText() {
+  }
+
+  static String pretty(Object value) {
+    try {
+      return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Не удалось сериализовать результат", e);
+    }
   }
 }

@@ -5,9 +5,10 @@ plugins {
 
 dependencies {
     api(libs.mdclasses)
-    // mdclasses объявляет библиотеку как implementation, но её типы (MultiLanguageString)
-    // встречаются в публичном API модели, поэтому нужны в нашем compile classpath
-    implementation(libs.bsl.common.library)
+    // mdclasses объявляет библиотеку как implementation, но её типы (MDOType,
+    // MultiLanguageString) встречаются в публичном API модели, поэтому она нужна
+    // и нам, и потребителям core
+    api(libs.bsl.common.library)
     api(libs.slf4j.api)
     // Jackson нужен и потребителям библиотеки: CLI собирает JSON для list-checks,
     // будущие интеграции (Sonar, MCP) работают с теми же моделями

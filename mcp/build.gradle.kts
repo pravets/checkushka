@@ -1,10 +1,19 @@
 plugins {
     `java-library`
+    application
     id("cloud.rio.license")
+}
+
+application {
+    mainClass = "ru.pravets.checkushka.mcp.CheckushkaMcp"
+    applicationName = "checkushka-mcp"
 }
 
 dependencies {
     implementation(project(":checkushka-core"))
+    implementation(libs.mcp.core)
+    implementation(libs.mcp.json.jackson2)
+    runtimeOnly(libs.slf4j.simple)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)

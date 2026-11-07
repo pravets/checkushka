@@ -76,6 +76,37 @@ checkushka check путь --fail-on CRITICAL
 | `RoleWithoutRights` | роль, у которой не установлено ни одного права |
 | `FormWithoutTitle` | форма с незаполненным заголовком |
 
+## MCP-режим
+
+`checkushka-mcp` (или `java -cp ... ru.pravets.checkushka.mcp.CheckushkaMcp`) поднимает
+MCP-сервер по stdio:
+
+```json
+{
+  "mcpServers": {
+    "checkushka": {
+      "command": "checkushka-mcp"
+    }
+  }
+}
+```
+
+Инструменты:
+
+| Инструмент | Назначение |
+| --- | --- |
+| `list_workspace_folders` | зарегистрированные рабочие папки |
+| `register_workspace_folder` | разобрать проект по каталогу и зарегистрировать его |
+| `unregister_workspace_folder` | освободить разобранную модель |
+| `analyze_configuration` | запустить проверки и вернуть замечания |
+| `list_checks` | доступные проверки |
+| `describe_check` | описание проверки и её параметры |
+| `list_metadata_objects` | объекты метаданных с фильтром по типу и имени |
+| `get_metadata_object` | свойства объекта по ссылке |
+
+Все инструменты анализа помечены как read-only; управление рабочими папками меняет состояние
+сервера. Streamable HTTP пока не реализован — см. [docs/roadmap.md](docs/roadmap.md).
+
 ## Структура
 
 | Модуль | Назначение |
