@@ -75,12 +75,15 @@ publishing {
 }
 
 signing {
-    // Подпись включается только при наличии ключа в окружении: локальная сборка
-    // и тесты работают без него, публикация в Maven Central — с подписью
-    val key = providers.environmentVariable("GPG_SIGNING_KEY")
-    isRequired = key.isPresent
-    if (key.isPresent) {
-        useInMemoryPgpKeys(key.get(), providers.environmentVariable("GPG_SIGNING_PASSWORD").orNull)
+    // Подпись включается только при наличии непустого ключа в окружении: локальная сборка
+    // и CI без секретов работают без неё, публикация в Maven Central — с подписью
+    val key = providers.environmentVariable("GPG_SIGNING_KEY").orNull
+        ?.takeIf { it.isNotBlank() }
+    val password = providers.environmentVariable("GPG_SIGNING_PASSWORD").orNull
+        ?.takeIf { it.isNotBlank() }
+    isRequired = key != null
+    if (key != null) {
+        useInMemoryPgpKeys(key, password)
     }
     sign(publishing.publications)
 }
