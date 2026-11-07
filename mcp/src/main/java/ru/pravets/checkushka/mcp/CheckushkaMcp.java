@@ -25,20 +25,25 @@ import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpServerTransportProvider;
+import io.modelcontextprotocol.spec.McpStreamableServerTransportProvider;
 import ru.pravets.checkushka.core.Checkushka;
 
 /**
  * MCP-сервер checkushka.
  *
- * <p>Транспорт {@code stdio} — основной: клиент сам запускает процесс и общается по стандартным
- * потокам. Streamable HTTP появится отдельным этапом.
+ * <p>Транспорты: {@code stdio} (по умолчанию) и {@code streamable} — HTTP-эндпоинт
+ * на встроенном Jetty.
  */
 public final class CheckushkaMcp {
 
   /** Имя сервера в протоколе MCP. */
   public static final String SERVER_NAME = "checkushka";
 
-  private static final String STDIO = "stdio";
+  /** Порт HTTP-транспорта по умолчанию. */
+  public static final int DEFAULT_PORT = 8080;
+
+  private static final String INSTRUCTIONS = "Проверка метаданных и форм 1С. Зарегистрируйте рабочую папку "
+    + "инструментом register_workspace_folder, затем вызовите analyze_configuration.";
 
   private CheckushkaMcp() {
   }
@@ -46,46 +51,75 @@ public final class CheckushkaMcp {
   /**
    * Точка входа.
    *
-   * @param args аргументы: {@code --protocol stdio}
-   * @throws InterruptedException если поток прерван
+   * @param args аргументы: {@code --protocol stdio|streamable}, {@code --server.port}
+   * @throws Exception если транспорт не удалось запустить
    */
-  public static void main(String[] args) throws InterruptedException {
-    var protocol = protocol(args);
-    if (!STDIO.equals(protocol)) {
-      System.err.println("Поддерживается только --protocol stdio; " + protocol + " появится позже");
-      System.exit(2);
+  public static void main(String[] args) throws Exception {
+    var protocol = option(args, "--protocol", "stdio");
+    var tools = new ToolFactory(new WorkspaceRegistry()).tools();
+
+    switch (protocol) {
+      case "stdio" -> {
+        var transport = new StdioServerTransportProvider(McpJsonDefaults.getMapper());
+        var server = McpServer.sync(transport)
+          .serverInfo(SERVER_NAME, Checkushka.version())
+          .instructions(INSTRUCTIONS)
+          .tools(tools)
+          .build();
+        Runtime.getRuntime().addShutdownHook(new Thread(server::closeGracefully));
+        System.err.println(SERVER_NAME + " " + Checkushka.version() + " слушает stdio");
+        Thread.currentThread().join();
+      }
+      // Остальные варианты обрабатываются ниже.
+      case "streamable" -> {
+        var port = Integer.parseInt(option(args, "--server.port", String.valueOf(DEFAULT_PORT)));
+        var path = option(args, "--mcp-path", HttpTransportServer.DEFAULT_PATH);
+        var jetty = HttpTransportServer.start("0.0.0.0", port, path);
+        System.err.println(SERVER_NAME + " " + Checkushka.version()
+          + " слушает http://localhost:" + HttpTransportServer.port(jetty) + path);
+        jetty.join();
+      }
+      default -> {
+        System.err.println("Неизвестный транспорт: " + protocol + "; поддерживаются stdio и streamable");
+        System.exit(2);
+      }
     }
-
-    var transport = new StdioServerTransportProvider(McpJsonDefaults.getMapper());
-    var server = create(transport);
-    Runtime.getRuntime().addShutdownHook(new Thread(server::closeGracefully));
-
-    System.err.println(SERVER_NAME + " " + Checkushka.version() + " слушает stdio");
-    Thread.currentThread().join();
   }
 
   /**
-   * Создаёт сервер с инструментами.
+   * Создаёт сервер с инструментами поверх произвольного транспорта.
    *
    * @param transport транспорт протокола
    * @return запущенный сервер
    */
   public static McpSyncServer create(McpServerTransportProvider transport) {
-    var tools = new ToolFactory(new WorkspaceRegistry()).tools();
     return McpServer.sync(transport)
       .serverInfo(SERVER_NAME, Checkushka.version())
-      .instructions("Проверка метаданных и форм 1С. Зарегистрируйте рабочую папку "
-        + "инструментом register_workspace_folder, затем вызовите analyze_configuration.")
-      .tools(tools)
+      .instructions(INSTRUCTIONS)
+      .tools(new ToolFactory(new WorkspaceRegistry()).tools())
       .build();
   }
 
-  private static String protocol(String[] args) {
+  /**
+   * Создаёт сервер поверх Streamable HTTP транспорта.
+   *
+   * @param transport транспорт протокола
+   * @return запущенный сервер
+   */
+  public static McpSyncServer create(McpStreamableServerTransportProvider transport) {
+    return McpServer.sync(transport)
+      .serverInfo(SERVER_NAME, Checkushka.version())
+      .instructions(INSTRUCTIONS)
+      .tools(new ToolFactory(new WorkspaceRegistry()).tools())
+      .build();
+  }
+
+  private static String option(String[] args, String name, String defaultValue) {
     for (var index = 0; index < args.length - 1; index++) {
-      if ("--protocol".equals(args[index])) {
+      if (name.equals(args[index])) {
         return args[index + 1];
       }
     }
-    return STDIO;
+    return defaultValue;
   }
 }

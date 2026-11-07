@@ -13,6 +13,9 @@ dependencies {
     implementation(project(":checkushka-core"))
     implementation(libs.mcp.core)
     implementation(libs.mcp.json.jackson2)
+    implementation(libs.jetty.ee11.servlet)
+    // Servlet API приходит из контейнера Jetty, для компиляции достаточно compileOnly
+    compileOnly(libs.jakarta.servlet.api)
     runtimeOnly(libs.slf4j.simple)
 
     testImplementation(platform(libs.junit.bom))

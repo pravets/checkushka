@@ -28,7 +28,7 @@
 | Направление | Этап | Комментарий |
 | --- | --- | --- |
 | MCP-режим: stdio | M3 | сделано: 8 инструментов, тест на JSON-RPC handshake |
-| MCP-режим: streamable HTTP | M3.1 | нужен servlet-контейнер (Jetty) или stateless-транспорт SDK |
+| MCP-режим: streamable HTTP | M3.1 | сделано: Jetty 12 (ee11), эндпоинт `/mcp`, тест со штатным клиентом SDK |
 | SonarQube-плагин | M4 | отдельный модуль, `sonar-plugin-api`, shadow-jar с `Plugin-*` манифестом |
 | Публикация JSON-схемы | M2+ | схема лежит в `schema/checkushka.schema.json`, нужен адрес на сайте документации |
 | Каталог проверок в документации | M2+ | сейчас `docs/checks/*.md` пишутся руками, позже — генерация из аннотаций |

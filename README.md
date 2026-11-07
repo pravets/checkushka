@@ -105,7 +105,25 @@ MCP-сервер по stdio:
 | `get_metadata_object` | свойства объекта по ссылке |
 
 Все инструменты анализа помечены как read-only; управление рабочими папками меняет состояние
-сервера. Streamable HTTP пока не реализован — см. [docs/roadmap.md](docs/roadmap.md).
+сервера.
+
+### Streamable HTTP
+
+```sh
+checkushka-mcp --protocol streamable --server.port 8080
+# эндпоинт: http://localhost:8080/mcp (путь меняется --mcp-path)
+```
+
+```json
+{
+  "mcpServers": {
+    "checkushka": {
+      "type": "streamable-http",
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}
+```
 
 ## Структура
 
