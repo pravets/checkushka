@@ -39,6 +39,7 @@ public final class Main implements Runnable {
    * @param args аргументы командной строки
    */
   public static void main(String[] args) {
+    OutputEncoding.configure();
     System.exit(createCommandLine().execute(args));
   }
 
