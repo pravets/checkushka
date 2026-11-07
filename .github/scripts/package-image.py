@@ -33,17 +33,17 @@ def find_exec_jar(source: Path) -> Path:
     if source.is_dir():
         candidates = sorted(source.glob("*-exec.jar"))
         if len(candidates) != 1:
-            sys.exit(f"Ожидался ровно один *-exec.jar в {source}, найдено: {len(candidates)}")
+            sys.exit(f"Expected exactly one *-exec.jar in {source}, found: {len(candidates)}")
         return candidates[0]
     if not source.is_file():
-        sys.exit(f"Не найден exec-jar: {source}")
+        sys.exit(f"exec-jar not found: {source}")
     return source
 
 
 def version_from_jar(jar: Path) -> str:
     match = re.search(rf"{APP_NAME}-(.+)-exec\.jar$", jar.name)
     if not match:
-        sys.exit(f"Не удалось определить версию из имени {jar.name}; передайте --version")
+        sys.exit(f"Cannot parse version from {jar.name}; pass --version")
     return match.group(1)
 
 
@@ -63,6 +63,8 @@ def build_image(jar: Path, version: str, work: Path) -> Path:
 
     dest = work / "image"
     dest.mkdir()
+    # --app-version не передаём: jpackage на macOS требует, чтобы первое число было больше нуля,
+    # а версия приложения всё равно берётся из манифеста jar (checkushka --version)
     command = [
         jpackage_command(),
         "--type", "app-image",
@@ -70,17 +72,17 @@ def build_image(jar: Path, version: str, work: Path) -> Path:
         "--input", str(input_dir),
         "--main-jar", jar.name,
         "--main-class", MAIN_CLASS,
-        "--app-version", version,
         "--dest", str(dest),
         "--java-options", "-Dfile.encoding=UTF-8",
         "--java-options", "-Dstdout.encoding=UTF-8",
         "--java-options", "-Dstderr.encoding=UTF-8",
     ]
+    print(f"jpackage: {jar.name}, version {version}")
     subprocess.run(command, check=True)
 
     entries = list(dest.iterdir())
     if len(entries) != 1:
-        sys.exit(f"jpackage создал неожиданный набор файлов: {[entry.name for entry in entries]}")
+        sys.exit(f"jpackage produced unexpected entries: {[entry.name for entry in entries]}")
     return entries[0]
 
 
@@ -98,6 +100,12 @@ def archive(image: Path, prefix: str, out: Path) -> Path:
 
 
 def main() -> None:
+    # Windows-консоль по умолчанию cp1252: без этого любые не-ASCII сообщения валят скрипт
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="Собрать per-OS архив checkushka со встроенным JRE")
     parser.add_argument("--jar", required=True, help="exec-jar или каталог с ним")
     parser.add_argument("--prefix", required=True, choices=["win", "nix", "mac"],
@@ -112,11 +120,10 @@ def main() -> None:
 
     work = Path(tempfile.mkdtemp(prefix="checkushka-image-"))
     try:
-        print(f"jpackage: {jar.name}, версия {version}")
         image = build_image(jar, version, work)
         archive_path = archive(image, args.prefix, out)
         size_mb = archive_path.stat().st_size / 1024 / 1024
-        print(f"создан {archive_path} ({size_mb:.1f} МБ)")
+        print(f"created {archive_path} ({size_mb:.1f} MB)")
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
