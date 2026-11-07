@@ -26,22 +26,20 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Настройка кодировки вывода.
+ * Потоки вывода в UTF-8.
  *
- * <p>В интерактивной консоли Windows Java пишет в кодировке консоли (обычно cp866), и это
- * правильно: текст отображается корректно. При перенаправлении вывода в файл или в конвейер
- * та же кодировка ломает машиночитаемые отчёты (JSON, SARIF), поэтому в этом случае вывод
- * принудительно переводится в UTF-8.
+ * <p>Java на Windows по умолчанию выбирает ANSI-кодировку (Cp1251/Cp866), когда stdout
+ * не распознан как консоль — а это ломает и кириллицу в терминале, и машиночитаемые отчёты.
+ * Кодировка задаётся здесь, а не через свойства JVM, чтобы одинаково работать и в стартовых
+ * скриптах, и при прямом запуске {@code java -cp}. Консоль Windows дополнительно переводится
+ * в UTF-8 стартовым скриптом.
  */
-final class OutputEncoding {
+final class Utf8Console {
 
-  private OutputEncoding() {
+  private Utf8Console() {
   }
 
   static void configure() {
-    if (System.console() != null) {
-      return;
-    }
     System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true,
       StandardCharsets.UTF_8));
     System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true,

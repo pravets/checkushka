@@ -52,6 +52,10 @@ class McpStdioTest {
     {"jsonrpc":"2.0","id":3,"method":"tools/call",\
     "params":{"name":"list_checks","arguments":{}}}""";
 
+  private static final String CALL_DESCRIBE_CHECK = """
+    {"jsonrpc":"2.0","id":4,"method":"tools/call",\
+    "params":{"name":"describe_check","arguments":{"key":"MetadataOrder"}}}""";
+
   @Test
   void respondsToInitializeAndListsTools() throws Exception {
     var java = Path.of(System.getProperty("java.home"), "bin",
@@ -95,6 +99,15 @@ class McpStdioTest {
         .contains("\"result\"")
         .contains("MetadataOrder")
         .contains("RoleWithoutRights");
+
+      writer.write(CALL_DESCRIBE_CHECK);
+      writer.newLine();
+      writer.flush();
+      var describe = readLine(executor, reader);
+      assertThat(describe)
+        .as("кириллица в ответе инструмента должна приходить в UTF-8")
+        .contains("Порядок объектов метаданных")
+        .contains("Режим учёта префиксов");
     } finally {
       executor.shutdownNow();
       process.destroyForcibly();

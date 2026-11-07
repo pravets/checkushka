@@ -76,7 +76,12 @@ public final class CheckushkaMcp {
 
     switch (protocol) {
       case "stdio" -> {
-        var transport = new StdioServerTransportProvider(McpJsonDefaults.getMapper());
+        // MCP по stdio обязан говорить UTF-8, поэтому поток протокола задаётся явно,
+        // а не берётся из System.out с кодировкой по умолчанию (на Windows это ANSI)
+        var protocolOut = new java.io.PrintStream(
+          new java.io.FileOutputStream(java.io.FileDescriptor.out), true,
+          java.nio.charset.StandardCharsets.UTF_8);
+        var transport = new StdioServerTransportProvider(McpJsonDefaults.getMapper(), System.in, protocolOut);
         var server = McpServer.sync(transport)
           .serverInfo(SERVER_NAME, Checkushka.version())
           .instructions(INSTRUCTIONS)
