@@ -56,6 +56,7 @@ jobs:
           files: |
             core/build/libs/checkushka-core-*.jar
             core/build/staging-deploy/ru/pravets/checkushka/checkushka-core/*/*.pom
+            cli/build/libs/checkushka-*-exec.jar
             cli/build/distributions/*.zip
             cli/build/distributions/*.tar
             mcp/build/distributions/*.zip

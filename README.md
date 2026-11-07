@@ -29,6 +29,20 @@
 
 Отчёты тестов и покрытия — в `build/reports` соответствующего модуля.
 
+## Поставка одним файлом
+
+Основной артефакт — исполняемый fat-jar со всеми зависимостями (аналог `-exec.jar` у BSL LS):
+
+```sh
+java -jar checkushka-0.1.1-exec.jar --version
+java -jar checkushka-0.1.1-exec.jar check путь/к/проекту
+java -jar checkushka-0.1.1-exec.jar mcp
+```
+
+Внутри — все команды, включая MCP-сервер (stdio и streamable HTTP). На Windows при запуске
+через `java -jar` выполните `chcp 65001`, иначе кириллица отобразится мусором; в zip-распределении
+это делает `checkushka.bat`.
+
 ## Использование
 
 ```sh

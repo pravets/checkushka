@@ -1,10 +1,11 @@
 plugins {
     id("cloud.rio.license") version "0.18.0" apply false
+    id("com.gradleup.shadow") version "9.6.1" apply false
 }
 
 allprojects {
     group = "ru.pravets.checkushka"
-    version = "0.1.0"
+    version = "0.1.1"
 }
 
 subprojects {

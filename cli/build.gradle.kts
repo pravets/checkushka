@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     application
+    id("com.gradleup.shadow")
     id("cloud.rio.license")
 }
 
@@ -19,6 +20,36 @@ application {
  * отсюда chcp. Переменная сохраняется до setlocal (иначе её сбросит endlocal),
  * а код возврата фиксируется до chcp (иначе chcp перезапишет ERRORLEVEL).
  */
+/**
+ * Готовая поставка одним файлом, как `-exec.jar` у BSL Language Server:
+ * `java -jar checkushka-<версия>-exec.jar`.
+ */
+tasks.shadowJar {
+    archiveBaseName = "checkushka"
+    archiveClassifier = "exec"
+    // MCP SDK и Jackson находят реализации через META-INF/services: при склейке
+    // файлы нужно объединять, иначе сервер не стартует из fat-jar
+    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "module-info.class")
+    manifest {
+        attributes(
+            "Main-Class" to "ru.pravets.checkushka.cli.Main",
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version
+        )
+    }
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
+}
+
+// Тест MCP запускает fat-jar как отдельный процесс, поэтому jar должен быть собран заранее
+tasks.named<Test>("test") {
+    dependsOn(tasks.shadowJar)
+}
+
 tasks.named<CreateStartScripts>("startScripts") {
     doLast {
         val file = windowsScript
