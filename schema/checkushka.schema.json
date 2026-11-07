@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/checkushka/checkushka/master/schema/checkushka.schema.json",
+  "$id": "https://raw.githubusercontent.com/pravets/checkushka/master/schema/checkushka.schema.json",
   "title": "Конфигурация checkushka",
   "description": "Настройки проверки метаданных и форм конфигураций 1С",
   "type": "object",

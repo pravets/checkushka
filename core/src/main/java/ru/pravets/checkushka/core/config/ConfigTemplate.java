@@ -30,7 +30,7 @@ public final class ConfigTemplate {
 
   private static final String JSON = """
     {
-      "$schema": "https://raw.githubusercontent.com/checkushka/checkushka/master/schema/checkushka.schema.json",
+      "$schema": "https://raw.githubusercontent.com/pravets/checkushka/master/schema/checkushka.schema.json",
       "language": "ru",
       "source": {
         "format": "auto"

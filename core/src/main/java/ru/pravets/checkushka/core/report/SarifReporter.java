@@ -40,7 +40,7 @@ public final class SarifReporter implements Reporter {
   private static final String SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json";
   private static final String SARIF_VERSION = "2.1.0";
   private static final String TOOL_NAME = "checkushka";
-  private static final String INFORMATION_URI = "https://github.com/checkushka/checkushka";
+  private static final String INFORMATION_URI = "https://github.com/pravets/checkushka";
 
   private final ObjectMapper mapper = new ObjectMapper();
 

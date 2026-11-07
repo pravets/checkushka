@@ -43,7 +43,7 @@ publishing {
             pom {
                 name.set("checkushka-core")
                 description.set("Проверка метаданных и форм конфигураций 1С:Предприятие на соответствие стандартам")
-                url.set("https://github.com/checkushka/checkushka")
+                url.set("https://github.com/pravets/checkushka")
                 licenses {
                     license {
                         name.set("GNU Lesser General Public License v3.0 or later")
@@ -59,9 +59,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git://github.com/checkushka/checkushka.git")
-                    developerConnection.set("scm:git:git@github.com:checkushka/checkushka.git")
-                    url.set("https://github.com/checkushka/checkushka")
+                    connection.set("scm:git:git://github.com/pravets/checkushka.git")
+                    developerConnection.set("scm:git:git@github.com:pravets/checkushka.git")
+                    url.set("https://github.com/pravets/checkushka")
                 }
             }
         }
