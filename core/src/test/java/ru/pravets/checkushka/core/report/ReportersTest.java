@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import ru.pravets.checkushka.core.AnalysisResult;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.Severity;
@@ -37,14 +38,15 @@ import ru.pravets.checkushka.core.source.SourceLocation;
 
 class ReportersTest {
 
-  private static final Path ROOT = Path.of("C:/project");
+  @TempDir
+  private Path root;
 
-  private static AnalysisResult result() {
+  private AnalysisResult result() {
     var issue = new CheckResult(
       "MetadataOrder",
       "Объект «МодульА» должен располагаться раньше «МодульБ»",
       Severity.MINOR,
-      SourceLocation.of(ROOT.resolve("Configuration.xml"), 12, "CommonModule.МодульА"),
+      SourceLocation.of(root.resolve("Configuration.xml"), 12, "CommonModule.МодульА"),
       1);
     return new AnalysisResult(List.of(issue),
       new AnalysisResult.Statistics(3, 4, Duration.ofMillis(25)));
@@ -55,7 +57,7 @@ class ReportersTest {
     var buffer = new ByteArrayOutputStream();
     var out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
 
-    new ConsoleReporter().report(result(), new ReportContext(ROOT, out));
+    new ConsoleReporter().report(result(), new ReportContext(root, out));
 
     var text = buffer.toString(StandardCharsets.UTF_8);
     assertThat(text)
@@ -71,7 +73,7 @@ class ReportersTest {
 
     new ConsoleReporter().report(
       new AnalysisResult(List.of(), new AnalysisResult.Statistics(1, 1, Duration.ZERO)),
-      new ReportContext(ROOT, out));
+      new ReportContext(root, out));
 
     assertThat(buffer.toString(StandardCharsets.UTF_8)).contains("Замечаний не найдено");
   }
@@ -81,7 +83,7 @@ class ReportersTest {
     var buffer = new ByteArrayOutputStream();
     var out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
 
-    new JsonReporter().report(result(), new ReportContext(ROOT, out));
+    new JsonReporter().report(result(), new ReportContext(root, out));
 
     var node = new ObjectMapper().readTree(buffer.toString(StandardCharsets.UTF_8));
     assertThat(node.path("version").asInt()).isEqualTo(JsonReporter.SCHEMA_VERSION);

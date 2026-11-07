@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import ru.pravets.checkushka.core.AnalysisResult;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.Severity;
@@ -38,12 +39,13 @@ import ru.pravets.checkushka.core.source.SourceLocation;
 
 class JunitReporterTest {
 
-  private static final Path ROOT = Path.of("C:/project");
+  @TempDir
+  private Path root;
 
   @Test
   void writesTestsuiteWithFailures() throws Exception {
     var issue = new CheckResult("FormWithoutTitle", "Нет заголовка", Severity.MINOR,
-      SourceLocation.of(ROOT.resolve("Catalogs/Товары/Forms/Форма.xml"), null, "Форма"), 1);
+      SourceLocation.of(root.resolve("Catalogs/Товары/Forms/Форма.xml"), null, "Форма"), 1);
 
     var bytes = render(new AnalysisResult(List.of(issue),
       new AnalysisResult.Statistics(1, 1, Duration.ofMillis(250))));
@@ -74,10 +76,10 @@ class JunitReporterTest {
     assertThat(document.getDocumentElement().getAttribute("tests")).isEqualTo("0");
   }
 
-  private static byte[] render(AnalysisResult result) {
+  private byte[] render(AnalysisResult result) {
     var buffer = new ByteArrayOutputStream();
     new JunitReporter().report(result,
-      new ReportContext(ROOT, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
+      new ReportContext(root, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
     return buffer.toByteArray();
   }
 }

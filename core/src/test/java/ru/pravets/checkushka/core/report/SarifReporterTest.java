@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import ru.pravets.checkushka.core.AnalysisResult;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.Severity;
@@ -37,17 +38,19 @@ import ru.pravets.checkushka.core.source.SourceLocation;
 
 class SarifReporterTest {
 
-  private static final Path ROOT = Path.of("C:/project");
+  @TempDir
+  private Path root;
 
   @Test
   void writesSarifWithRulesAndResults() throws Exception {
     var buffer = new ByteArrayOutputStream();
     var issue = new CheckResult("MetadataOrder", "Нарушен порядок", Severity.MINOR,
-      SourceLocation.of(ROOT.resolve("src/Configuration/Configuration.mdo"), 34, "CommonModule.Locked"), 1);
+      SourceLocation.of(root.resolve("src/Configuration/Configuration.mdo"), 34,
+        "CommonModule.Locked"), 1);
 
     new SarifReporter().report(
       new AnalysisResult(List.of(issue), new AnalysisResult.Statistics(3, 1, Duration.ofMillis(5))),
-      new ReportContext(ROOT, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
+      new ReportContext(root, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
 
     var node = new ObjectMapper().readTree(buffer.toString(StandardCharsets.UTF_8));
     assertThat(node.path("version").asText()).isEqualTo("2.1.0");
@@ -72,11 +75,11 @@ class SarifReporterTest {
   void mapsSeverityToSarifLevel() throws Exception {
     var buffer = new ByteArrayOutputStream();
     var issue = new CheckResult("RoleWithoutRights", "Нет прав", Severity.CRITICAL,
-      SourceLocation.of(ROOT.resolve("Roles/Роль.xml")), 1);
+      SourceLocation.of(root.resolve("Roles/Роль.xml")), 1);
 
     new SarifReporter().report(
       new AnalysisResult(List.of(issue), new AnalysisResult.Statistics(1, 1, Duration.ZERO)),
-      new ReportContext(ROOT, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
+      new ReportContext(root, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
 
     var node = new ObjectMapper().readTree(buffer.toString(StandardCharsets.UTF_8));
     assertThat(node.path("runs").get(0).path("results").get(0).path("level").asText())

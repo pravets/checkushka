@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import ru.pravets.checkushka.core.AnalysisResult;
@@ -40,12 +41,14 @@ import ru.pravets.checkushka.core.source.SourceLocation;
 
 class GenericIssueReporterTest {
 
-  private static final Path ROOT = Path.of("C:/project");
+  @TempDir
+  private Path root;
 
   @Test
   void writesSonarIssueFormat() throws Exception {
     var issue = new CheckResult("MetadataOrder", "Нарушен порядок", Severity.MINOR,
-      SourceLocation.of(ROOT.resolve("src/Configuration/Configuration.mdo"), 34, "CommonModule.Locked"), 1);
+      SourceLocation.of(root.resolve("src/Configuration/Configuration.mdo"), 34,
+        "CommonModule.Locked"), 1);
 
     var document = render(new AnalysisResult(List.of(issue),
       new AnalysisResult.Statistics(1, 1, Duration.ZERO)));
@@ -65,10 +68,10 @@ class GenericIssueReporterTest {
     assertThat(text(primary, "startLine")).isEqualTo("34");
   }
 
-  private static Document render(AnalysisResult result) throws Exception {
+  private Document render(AnalysisResult result) throws Exception {
     var buffer = new ByteArrayOutputStream();
     new GenericIssueReporter().report(result,
-      new ReportContext(ROOT, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
+      new ReportContext(root, new PrintStream(buffer, true, StandardCharsets.UTF_8)));
     return DocumentBuilderFactory.newInstance().newDocumentBuilder()
       .parse(new ByteArrayInputStream(buffer.toByteArray()));
   }
