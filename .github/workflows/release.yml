@@ -42,15 +42,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "$GITHUB_REF_NAME"
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --generate-notes --title "$GITHUB_REF_NAME"
           fi
 
       - name: Прикрепить jar-артефакты
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "$GITHUB_REF_NAME" \
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             cli/build/libs/checkushka-*-exec.jar \
             core/build/libs/checkushka-core-*.jar \
             --clobber
@@ -100,7 +100,7 @@ jobs:
       - name: Прикрепить архив к релизу
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" "checkushka_${{ matrix.prefix }}.zip" --clobber
+        run: gh release upload "${{ github.ref_name }}" "checkushka_${{ matrix.prefix }}.zip" --repo "${{ github.repository }}" --clobber
 
   publish:
     name: Опубликовать релиз
@@ -110,4 +110,4 @@ jobs:
       - name: Снять черновик
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --draft=false
+        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false
