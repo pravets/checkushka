@@ -5,6 +5,9 @@ plugins {
 
 dependencies {
     api(libs.mdclasses)
+    // mdclasses объявляет библиотеку как implementation, но её типы (MultiLanguageString)
+    // встречаются в публичном API модели, поэтому нужны в нашем compile classpath
+    implementation(libs.bsl.common.library)
     api(libs.slf4j.api)
     implementation(libs.jackson.databind)
 

@@ -1,6 +1,7 @@
 [versions]
 java-release = "21"
 mdclasses = "0.21.0"
+bsl-common-library = "0.12.5"
 jackson = "2.22.4"
 picocli = "4.7.7"
 slf4j = "2.0.20"
@@ -10,6 +11,7 @@ mcp = "2.1.0"
 
 [libraries]
 mdclasses = { module = "io.github.1c-syntax:mdclasses", version.ref = "mdclasses" }
+bsl-common-library = { module = "io.github.1c-syntax:bsl-common-library", version.ref = "bsl-common-library" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

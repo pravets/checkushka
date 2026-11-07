@@ -25,9 +25,6 @@ import ru.pravets.checkushka.core.Checkushka;
 
 /**
  * Точка входа утилиты checkushka.
- *
- * <p>Подкоманды ({@code check}, {@code list-checks}, {@code describe-check}, {@code config},
- * {@code mcp}) появятся на следующих этапах.
  */
 @CommandLine.Command(
   name = "checkushka",
@@ -42,7 +39,17 @@ public final class Main implements Runnable {
    * @param args аргументы командной строки
    */
   public static void main(String[] args) {
-    System.exit(new CommandLine(new Main()).execute(args));
+    System.exit(createCommandLine().execute(args));
+  }
+
+  /**
+   * Собирает командную строку со всеми подкомандами.
+   *
+   * @return настроенная командная строка
+   */
+  public static CommandLine createCommandLine() {
+    return new CommandLine(new Main())
+      .addSubcommand(new CheckCommand());
   }
 
   @Override

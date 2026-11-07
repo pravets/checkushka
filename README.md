@@ -27,6 +27,55 @@
 
 Отчёты тестов и покрытия — в `build/reports` соответствующего модуля.
 
+## Использование
+
+```sh
+# проверить выгрузку конфигуратора или проект EDT
+checkushka check путь/к/проекту
+
+# только JSON, минимум MAJOR, только выбранные проверки
+checkushka check путь --reports json --severity MAJOR --checks MetadataOrder
+
+# код возврата 1, если есть замечания не ниже CRITICAL
+checkushka check путь --fail-on CRITICAL
+```
+
+Коды возврата: `0` — замечаний нет, `1` — замечания есть, `2` — ошибка чтения проекта
+или конфигурации.
+
+На Windows консоль по умолчанию не в UTF-8: для корректной кириллицы запускайте
+в консоли с `chcp 65001` или с `-Dstdout.encoding=UTF-8`.
+
+### Конфигурация
+
+Файл `checkushka.json` в корне проекта:
+
+```json
+{
+  "source": { "format": "auto" },
+  "checks": {
+    "mode": "ON",
+    "parameters": {
+      "MetadataOrder": { "mode": "groupByPrefix", "prefixes": ["об_"] }
+    },
+    "severity": { "MetadataOrder": "MAJOR" }
+  },
+  "ignore": [
+    { "check": "FormWithoutTitle", "mdo": "Catalog.*", "reason": "импорт от поставщика" }
+  ]
+}
+```
+
+Режимы `checks.mode`: `ON` (по умолчанию), `OFF`, `ONLY`, `EXCEPT`, `ALL`.
+
+### Проверки
+
+| Ключ | Что проверяет |
+| --- | --- |
+| `MetadataOrder` | порядок объектов в `ChildObjects` конфигурации; режимы префиксов `none`, `stripPrefix`, `groupByPrefix` |
+| `RoleWithoutRights` | роль, у которой не установлено ни одного права |
+| `FormWithoutTitle` | форма с незаполненным заголовком |
+
 ## Структура
 
 | Модуль | Назначение |

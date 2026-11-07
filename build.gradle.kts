@@ -18,7 +18,8 @@ subprojects {
     tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
         options.release.set(21)
-        options.compilerArgs.addAll(listOf("-Xlint:all", "-parameters"))
+        // classfile отключён: mdclasses несёт аннотации SpotBugs, которых нет в нашем classpath
+        options.compilerArgs.addAll(listOf("-Xlint:all,-classfile", "-parameters"))
     }
 
     tasks.withType<Jar>().configureEach {
