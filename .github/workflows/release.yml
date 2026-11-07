@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Проверить соответствие тега и версии
+        run: |
+          VERSION=$(./gradlew -q properties --console=plain | awk '/^version:/ {print $2}')
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "Версия проекта ($VERSION) не совпадает с тегом ($TAG)"
+            exit 1
+          fi
+
+      - name: Сборка и тесты
+        run: ./gradlew build --no-daemon
+
+      - name: Публикация checkushka-core в staging
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+        run: ./gradlew :checkushka-core:publish --no-daemon
+
+      - name: Дистрибутивы CLI и MCP
+        run: |
+          ./gradlew --no-daemon \
+            :checkushka-cli:distZip :checkushka-cli:distTar \
+            :checkushka-mcp:distZip :checkushka-mcp:distTar
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            core/build/libs/checkushka-core-*.jar
+            core/build/staging-deploy/ru/pravets/checkushka/checkushka-core/*/*.pom
+            cli/build/distributions/*.zip
+            cli/build/distributions/*.tar
+            mcp/build/distributions/*.zip
+            mcp/build/distributions/*.tar

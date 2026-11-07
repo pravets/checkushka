@@ -1,5 +1,7 @@
 plugins {
     `java-library`
+    `maven-publish`
+    signing
     id("cloud.rio.license")
 }
 
@@ -20,6 +22,67 @@ dependencies {
     testImplementation(libs.assertj.core)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// Javadoc-джар обязателен для Maven Central. Локально javadoc упирается в ограничения
+// песочницы DSH (инструмент не может создать каталог вывода), поэтому по умолчанию он
+// собирается только в CI или по явному -Pjavadoc
+val publishJavadoc = providers.environmentVariable("CI").isPresent
+    || providers.gradleProperty("javadoc").isPresent
+
+java {
+    if (publishJavadoc) {
+        withJavadocJar()
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("checkushka-core")
+                description.set("Проверка метаданных и форм конфигураций 1С:Предприятие на соответствие стандартам")
+                url.set("https://github.com/checkushka/checkushka")
+                licenses {
+                    license {
+                        name.set("GNU Lesser General Public License v3.0 or later")
+                        url.set("https://www.gnu.org/licenses/lgpl-3.0.txt")
+                        distribution.set("repo")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("pravets")
+                        name.set("Iosif Pravets")
+                        email.set("ip@technomarin.ru")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/checkushka/checkushka.git")
+                    developerConnection.set("scm:git:git@github.com:checkushka/checkushka.git")
+                    url.set("https://github.com/checkushka/checkushka")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging-deploy"))
+        }
+    }
+}
+
+signing {
+    // Подпись включается только при наличии ключа в окружении: локальная сборка
+    // и тесты работают без него, публикация в Maven Central — с подписью
+    val key = providers.environmentVariable("GPG_SIGNING_KEY")
+    isRequired = key.isPresent
+    if (key.isPresent) {
+        useInMemoryPgpKeys(key.get(), providers.environmentVariable("GPG_SIGNING_PASSWORD").orNull)
+    }
+    sign(publishing.publications)
 }
 
 license {

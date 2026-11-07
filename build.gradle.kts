@@ -4,7 +4,7 @@ plugins {
 
 allprojects {
     group = "ru.pravets.checkushka"
-    version = "0.1.0-SNAPSHOT"
+    version = "0.1.0"
 }
 
 subprojects {
@@ -13,6 +13,13 @@ subprojects {
 
     extensions.configure<JavaPluginExtension> {
         withSourcesJar()
+    }
+
+    tasks.withType<Javadoc>().configureEach {
+        (options as StandardJavadocDocletOptions).apply {
+            encoding = "UTF-8"
+            addStringOption("Xdoclint:none", "-quiet")
+        }
     }
 
     tasks.withType<JavaCompile>().configureEach {

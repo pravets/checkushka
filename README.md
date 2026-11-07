@@ -126,6 +126,24 @@ checkushka-mcp --protocol streamable --server.port 8080
 }
 ```
 
+## Релиз
+
+Версия задаётся в [build.gradle.kts](build.gradle.kts) и должна совпадать с тегом `vX.Y.Z`:
+workflow [release.yml](.github/workflows/release.yml) проверяет это перед сборкой.
+
+```sh
+# артефакты core в staging-репозиторий (build/staging-deploy)
+./gradlew :checkushka-core:publish
+
+# дистрибутивы CLI и MCP
+./gradlew :checkushka-cli:distZip :checkushka-cli:distTar \
+          :checkushka-mcp:distZip :checkushka-mcp:distTar
+```
+
+Публикация в Maven Central — из staging через jreleaser (см. [docs/roadmap.md](docs/roadmap.md)).
+GPG-подпись включается переменными окружения `GPG_SIGNING_KEY` (ASCII-armored ключ) и
+`GPG_SIGNING_PASSWORD`; без них сборка и публикация в staging проходят без подписи.
+
 ## Структура
 
 | Модуль | Назначение |
