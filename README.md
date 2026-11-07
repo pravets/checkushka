@@ -80,14 +80,24 @@ checkushka check путь --fail-on CRITICAL
 
 ## MCP-режим
 
-`checkushka-mcp` (или `java -cp ... ru.pravets.checkushka.mcp.CheckushkaMcp`) поднимает
-MCP-сервер по stdio:
+MCP-сервер — это команда утилиты, как `mcp` в BSL Language Server:
+
+```sh
+checkushka mcp                                  # stdio (по умолчанию)
+checkushka mcp --protocol streamable --server.port 8080
+```
+
+Для клиентов, которым нужен отдельный бинарник, есть дистрибутив `checkushka-mcp`
+(в конфигурации клиента — `"command": "checkushka-mcp"`): в нём только сервер, без классов CLI.
+
+Подключение по stdio:
 
 ```json
 {
   "mcpServers": {
     "checkushka": {
-      "command": "checkushka-mcp"
+      "command": "checkushka",
+      "args": ["mcp"]
     }
   }
 }
@@ -112,7 +122,7 @@ MCP-сервер по stdio:
 ### Streamable HTTP
 
 ```sh
-checkushka-mcp --protocol streamable --server.port 8080
+checkushka mcp --protocol streamable --server.port 8080
 # эндпоинт: http://localhost:8080/mcp (путь меняется --mcp-path)
 ```
 

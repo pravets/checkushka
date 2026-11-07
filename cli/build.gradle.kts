@@ -11,6 +11,9 @@ application {
 
 dependencies {
     implementation(project(":checkushka-core"))
+    // MCP-сервер — одна из команд утилиты (как режим mcp в BSL Language Server);
+    // отдельный дистрибутив checkushka-mcp остаётся для тех, кому нужен только сервер
+    implementation(project(":checkushka-mcp"))
     implementation(libs.picocli)
     runtimeOnly(libs.slf4j.simple)
 

@@ -102,6 +102,21 @@ class CliCommandsTest {
       .isZero();
   }
 
+  @Test
+  void checkCommandIsRegistered() {
+    var commandLine = Main.createCommandLine();
+
+    assertThat(commandLine.getSubcommands()).containsKey("check");
+    assertThat(commandLine.getSubcommands()).containsKey("mcp");
+  }
+
+  @Test
+  void mcpRejectsUnknownProtocol() {
+    var exitCode = Main.createCommandLine().execute("mcp", "--protocol", "foo");
+
+    assertThat(exitCode).isEqualTo(2);
+  }
+
   private static String run(String... args) {
     var buffer = new ByteArrayOutputStream();
     var original = System.out;

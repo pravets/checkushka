@@ -55,7 +55,23 @@ public final class CheckushkaMcp {
    * @throws Exception если транспорт не удалось запустить
    */
   public static void main(String[] args) throws Exception {
-    var protocol = option(args, "--protocol", "stdio");
+    var code = run(
+      option(args, "--protocol", "stdio"),
+      Integer.parseInt(option(args, "--server.port", String.valueOf(DEFAULT_PORT))),
+      option(args, "--mcp-path", HttpTransportServer.DEFAULT_PATH));
+    System.exit(code);
+  }
+
+  /**
+   * Запускает сервер и блокирует вызывающий поток до остановки процесса.
+   *
+   * @param protocol {@code stdio} или {@code streamable}
+   * @param port     порт HTTP-транспорта
+   * @param path     путь MCP-эндпоинта
+   * @return код возврата, если запуск не удался; при успешном запуске метод не возвращает управление
+   * @throws Exception если транспорт не удалось запустить
+   */
+  public static int run(String protocol, int port, String path) throws Exception {
     var tools = new ToolFactory(new WorkspaceRegistry()).tools();
 
     switch (protocol) {
@@ -70,10 +86,7 @@ public final class CheckushkaMcp {
         System.err.println(SERVER_NAME + " " + Checkushka.version() + " слушает stdio");
         Thread.currentThread().join();
       }
-      // Остальные варианты обрабатываются ниже.
       case "streamable" -> {
-        var port = Integer.parseInt(option(args, "--server.port", String.valueOf(DEFAULT_PORT)));
-        var path = option(args, "--mcp-path", HttpTransportServer.DEFAULT_PATH);
         var jetty = HttpTransportServer.start("0.0.0.0", port, path);
         System.err.println(SERVER_NAME + " " + Checkushka.version()
           + " слушает http://localhost:" + HttpTransportServer.port(jetty) + path);
@@ -81,9 +94,10 @@ public final class CheckushkaMcp {
       }
       default -> {
         System.err.println("Неизвестный транспорт: " + protocol + "; поддерживаются stdio и streamable");
-        System.exit(2);
+        return 2;
       }
     }
+    return 0;
   }
 
   /**

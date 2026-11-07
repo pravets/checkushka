@@ -53,7 +53,8 @@ public final class Main implements Runnable {
       .addSubcommand(new CheckCommand())
       .addSubcommand(new ListChecksCommand())
       .addSubcommand(new DescribeCheckCommand())
-      .addSubcommand(new ConfigCommand());
+      .addSubcommand(new ConfigCommand())
+      .addSubcommand(new McpCommand());
   }
 
   @Override
