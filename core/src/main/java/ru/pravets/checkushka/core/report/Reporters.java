@@ -38,6 +38,9 @@ public final class Reporters {
     return switch (format) {
       case CONSOLE -> new ConsoleReporter();
       case JSON -> new JsonReporter();
+      case SARIF -> new SarifReporter();
+      case JUNIT -> new JunitReporter();
+      case GENERIC_ISSUE -> new GenericIssueReporter();
     };
   }
 }

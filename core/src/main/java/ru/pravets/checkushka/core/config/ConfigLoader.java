@@ -79,13 +79,15 @@ public final class ConfigLoader {
     var format = SourceFormat.valueOf(
       text(root.path("source"), "format", "auto").toUpperCase(java.util.Locale.ROOT));
     var checks = root.path("checks");
+    var parsedParameters = parameters(checks.path("parameters"));
     var settings = new CheckSettings(
       ChecksMode.parse(text(checks, "mode", "on"), ChecksMode.ON),
       keys(checks.path("keys")),
-      parameters(checks.path("parameters")),
+      parsedParameters.values(),
       severities(checks.path("severity")),
       Severity.parse(text(checks, "minSeverity", "info"), Severity.INFO),
-      ignoreRules(root.path("ignore")));
+      ignoreRules(root.path("ignore")),
+      parsedParameters.disabled());
 
     return new CheckushkaConfig(language, format, settings);
   }
@@ -107,25 +109,39 @@ public final class ConfigLoader {
     return result;
   }
 
-  private static Map<String, CheckParameters> parameters(JsonNode node) {
-    var result = new LinkedHashMap<String, CheckParameters>();
+  private static ParametersResult parameters(JsonNode node) {
+    var values = new LinkedHashMap<String, CheckParameters>();
+    var disabled = new LinkedHashSet<String>();
     if (!node.isObject()) {
-      return result;
+      return new ParametersResult(values, disabled);
     }
     var fields = node.fields();
     while (fields.hasNext()) {
       var entry = fields.next();
+      if (entry.getValue().isBoolean() && !entry.getValue().asBoolean()) {
+        disabled.add(entry.getKey());
+        continue;
+      }
       if (entry.getValue().isObject()) {
-        var values = new LinkedHashMap<String, Object>();
+        var parameters = new LinkedHashMap<String, Object>();
         var nested = entry.getValue().fields();
         while (nested.hasNext()) {
           var parameter = nested.next();
-          values.put(parameter.getKey(), toValue(parameter.getValue()));
+          parameters.put(parameter.getKey(), toValue(parameter.getValue()));
         }
-        result.put(entry.getKey(), new CheckParameters(values));
+        values.put(entry.getKey(), new CheckParameters(parameters));
       }
     }
-    return result;
+    return new ParametersResult(values, disabled);
+  }
+
+  /**
+   * Разобранные параметры проверок и выключенные через {@code false} проверки.
+   *
+   * @param values   параметры по ключу проверки
+   * @param disabled ключи выключенных проверок
+   */
+  private record ParametersResult(Map<String, CheckParameters> values, Set<String> disabled) {
   }
 
   private static Object toValue(JsonNode node) {

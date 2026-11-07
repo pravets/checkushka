@@ -35,18 +35,21 @@ import ru.pravets.checkushka.core.check.Severity;
  * @param severityOverrides переопределения важности по ключу
  * @param minSeverity       нижняя граница важности для попадания в отчёт
  * @param ignore            правила исключения замечаний
+ * @param disabledChecks    проверки, выключенные значением {@code false} в параметрах
  */
 public record CheckSettings(ChecksMode mode, Set<String> checkKeys,
                             Map<String, CheckParameters> parameters,
                             Map<String, Severity> severityOverrides,
                             Severity minSeverity,
-                            List<IgnoreRule> ignore) {
+                            List<IgnoreRule> ignore,
+                            Set<String> disabledChecks) {
 
   public CheckSettings {
     checkKeys = Set.copyOf(checkKeys);
     parameters = Map.copyOf(parameters);
     severityOverrides = Map.copyOf(severityOverrides);
     ignore = List.copyOf(ignore);
+    disabledChecks = Set.copyOf(disabledChecks);
   }
 
   /**
@@ -55,7 +58,7 @@ public record CheckSettings(ChecksMode mode, Set<String> checkKeys,
    * @return настройки
    */
   public static CheckSettings defaults() {
-    return new CheckSettings(ChecksMode.ON, Set.of(), Map.of(), Map.of(), Severity.INFO, List.of());
+    return new CheckSettings(ChecksMode.ON, Set.of(), Map.of(), Map.of(), Severity.INFO, List.of(), Set.of());
   }
 
   /**
@@ -98,6 +101,9 @@ public record CheckSettings(ChecksMode mode, Set<String> checkKeys,
    * @return {@code true}, если проверка выполняется
    */
   public boolean isEnabled(String key, boolean activatedByDefault) {
+    if (disabledChecks.contains(key)) {
+      return false;
+    }
     return switch (mode) {
       case OFF -> false;
       case ALL -> true;

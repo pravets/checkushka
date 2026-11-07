@@ -49,7 +49,10 @@ public final class Main implements Runnable {
    */
   public static CommandLine createCommandLine() {
     return new CommandLine(new Main())
-      .addSubcommand(new CheckCommand());
+      .addSubcommand(new CheckCommand())
+      .addSubcommand(new ListChecksCommand())
+      .addSubcommand(new DescribeCheckCommand())
+      .addSubcommand(new ConfigCommand());
   }
 
   @Override

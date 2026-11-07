@@ -25,11 +25,13 @@ import java.util.HashMap;
 import java.util.List;
 import ru.pravets.checkushka.core.check.CheckContext;
 import ru.pravets.checkushka.core.check.CheckMetadata;
+import ru.pravets.checkushka.core.check.CheckParameter;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.CheckTag;
 import ru.pravets.checkushka.core.check.CheckTarget;
 import ru.pravets.checkushka.core.check.CheckType;
 import ru.pravets.checkushka.core.check.MetadataCheck;
+import ru.pravets.checkushka.core.check.ParameterizedCheck;
 import ru.pravets.checkushka.core.check.Severity;
 import ru.pravets.checkushka.core.engine.NameComparator;
 import ru.pravets.checkushka.core.engine.PrefixMode;
@@ -51,7 +53,7 @@ import ru.pravets.checkushka.core.source.SourceLocation;
   tags = {CheckTag.STANDARD, CheckTag.DESIGN},
   targets = CheckTarget.CONFIGURATION,
   minutesToFix = 1)
-public final class MetadataOrderCheck implements MetadataCheck {
+public final class MetadataOrderCheck implements MetadataCheck, ParameterizedCheck {
 
   /** Ключ проверки. */
   public static final String KEY = "MetadataOrder";
@@ -102,5 +104,16 @@ public final class MetadataOrderCheck implements MetadataCheck {
       previousNames.put(entry.type(), entry.name());
     }
     return results;
+  }
+
+  @Override
+  public List<CheckParameter> parameters() {
+    return List.of(
+      new CheckParameter(
+        "mode", "string", "none",
+        "Режим учёта префиксов: none, stripPrefix, groupByPrefix"),
+      new CheckParameter(
+        "prefixes", "string[]", "[]",
+        "Префиксы имён объектов; пустой список включает автоопределение"));
   }
 }

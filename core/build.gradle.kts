@@ -9,7 +9,9 @@ dependencies {
     // встречаются в публичном API модели, поэтому нужны в нашем compile classpath
     implementation(libs.bsl.common.library)
     api(libs.slf4j.api)
-    implementation(libs.jackson.databind)
+    // Jackson нужен и потребителям библиотеки: CLI собирает JSON для list-checks,
+    // будущие интеграции (Sonar, MCP) работают с теми же моделями
+    api(libs.jackson.databind)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)

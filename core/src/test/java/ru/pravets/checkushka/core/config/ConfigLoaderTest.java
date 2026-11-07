@@ -108,7 +108,7 @@ class ConfigLoaderTest {
     boolean enabled(ChecksMode mode, String key, boolean activatedByDefault) {
       return new ru.pravets.checkushka.core.engine.CheckSettings(
         mode, java.util.Set.of("Listed"), java.util.Map.of(), java.util.Map.of(),
-        Severity.INFO, java.util.List.of())
+        Severity.INFO, java.util.List.of(), java.util.Set.of())
         .isEnabled(key, activatedByDefault);
     }
   }

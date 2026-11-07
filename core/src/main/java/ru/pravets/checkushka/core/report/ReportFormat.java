@@ -28,10 +28,13 @@ import java.util.Locale;
 public enum ReportFormat {
 
   CONSOLE,
-  JSON;
+  JSON,
+  SARIF,
+  JUNIT,
+  GENERIC_ISSUE;
 
   /**
-   * Разбирает формат по имени.
+   * Разбирает формат по имени; регистр, дефисы и подчёркивания не важны.
    *
    * @param value        имя формата
    * @param defaultValue формат по умолчанию
@@ -42,7 +45,7 @@ public enum ReportFormat {
       return defaultValue;
     }
     for (var format : values()) {
-      if (format.name().equalsIgnoreCase(value.trim())) {
+      if (normalize(format.name()).equals(normalize(value))) {
         return format;
       }
     }
@@ -50,11 +53,15 @@ public enum ReportFormat {
       + "; допустимые: " + String.join(", ", names()));
   }
 
+  private static String normalize(String value) {
+    return value.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
+  }
+
   private static String[] names() {
     var values = values();
     var result = new String[values.length];
     for (var index = 0; index < values.length; index++) {
-      result[index] = values[index].name().toLowerCase(Locale.ROOT);
+      result[index] = values[index].name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
     return result;
   }

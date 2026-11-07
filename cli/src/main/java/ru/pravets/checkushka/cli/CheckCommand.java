@@ -119,7 +119,8 @@ public final class CheckCommand implements Callable<Integer> {
         base.parameters(),
         base.severityOverrides(),
         Severity.parse(severity, base.minSeverity()),
-        base.ignore());
+        base.ignore(),
+        base.disabledChecks());
 
       var result = Checkushka
         .with(new CheckushkaSettings(configPath, SourceFormat.parse(format, null), settings))
