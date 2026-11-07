@@ -41,6 +41,10 @@ tasks.shadowJar {
     }
 }
 
+// Готовой поставкой считаем application-дистрибутив (скрипты + lib) и exec-jar.
+// Собственные «shadow»-дистрибутивы плагина не нужны: они дублируют zip/tar
+tasks.matching { it.name.startsWith("shadowDist") }.configureEach { enabled = false }
+
 tasks.build {
     dependsOn(tasks.shadowJar)
 }
