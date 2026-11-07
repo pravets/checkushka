@@ -34,14 +34,26 @@
 Основной артефакт — исполняемый fat-jar со всеми зависимостями (аналог `-exec.jar` у BSL LS):
 
 ```sh
-java -jar checkushka-0.1.1-exec.jar --version
-java -jar checkushka-0.1.1-exec.jar check путь/к/проекту
-java -jar checkushka-0.1.1-exec.jar mcp
+java -jar checkushka-<версия>-exec.jar --version
+java -jar checkushka-<версия>-exec.jar check путь/к/проекту
+java -jar checkushka-<версия>-exec.jar mcp
 ```
 
 Внутри — все команды, включая MCP-сервер (stdio и streamable HTTP). На Windows при запуске
-через `java -jar` выполните `chcp 65001`, иначе кириллица отобразится мусором; в zip-распределении
-это делает `checkushka.bat`.
+через `java -jar` выполните `chcp 65001`, иначе кириллица отобразится мусором.
+
+## Готовые сборки под ОС
+
+В каждом релизе есть архивы со встроенным JRE — Java на машине не нужна:
+
+| Архив | Запуск |
+| --- | --- |
+| `checkushka_win.zip` | `checkushka\checkushka.exe` (или `checkushka-console.bat` — сам переключает консоль в UTF-8) |
+| `checkushka_nix.zip` | `checkushka/bin/checkushka` |
+| `checkushka_mac.zip` | `checkushka.app` |
+
+Образы собираются через `jpackage`, поэтому macOS-приложение не подписано — Gatekeeper
+предупредит при первом запуске.
 
 ## Использование
 
@@ -154,21 +166,26 @@ checkushka mcp --protocol streamable --server.port 8080
 
 ## Релиз
 
-Версия задаётся в [build.gradle.kts](build.gradle.kts) и должна совпадать с тегом `vX.Y.Z`:
-workflow [release.yml](.github/workflows/release.yml) проверяет это перед сборкой.
+Релиз делается тегом, вручную ничего собирать не нужно:
 
 ```sh
-# артефакты core в staging-репозиторий (build/staging-deploy)
-./gradlew :checkushka-core:publish
-
-# дистрибутивы CLI и MCP
-./gradlew :checkushka-cli:distZip :checkushka-cli:distTar \
-          :checkushka-mcp:distZip :checkushka-mcp:distTar
+# версия в build.gradle.kts должна совпадать с тегом
+git tag -s vX.Y.Z -m "checkushka X.Y.Z"
+git push origin vX.Y.Z
 ```
 
-Публикация в Maven Central — из staging через jreleaser (см. [docs/roadmap.md](docs/roadmap.md)).
-GPG-подпись включается переменными окружения `GPG_SIGNING_KEY` (ASCII-armored ключ) и
-`GPG_SIGNING_PASSWORD`; без них сборка и публикация в staging проходят без подписи.
+Workflow [release.yml](.github/workflows/release.yml):
+
+1. проверяет, что версия проекта совпадает с тегом;
+2. собирает и тестирует, создаёт черновик релиза и прикрепляет `-exec.jar`,
+   `checkushka-core-*.jar`, sources и javadoc;
+3. на трёх ОС собирает образы со встроенным JRE (`checkushka_win.zip`, `_nix.zip`, `_mac.zip`)
+   скриптом [.github/scripts/package-image.py](.github/scripts/package-image.py);
+4. снимает с релиза статус черновика.
+
+Публикации в Maven Central в этом workflow нет. Локальная публикация `checkushka-core`
+в staging-репозиторий остаётся доступной вручную (`./gradlew :checkushka-core:publish`);
+GPG-подпись включается переменными `GPG_SIGNING_KEY` / `GPG_SIGNING_PASSWORD`.
 
 ## Структура
 

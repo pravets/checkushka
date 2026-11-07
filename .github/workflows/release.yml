@@ -9,7 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  jars:
+    name: Сборка и jar-артефакты
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,27 +38,76 @@ jobs:
       - name: Сборка и тесты
         run: ./gradlew build --no-daemon
 
-      - name: Публикация checkushka-core в staging
+      - name: Черновик релиза
         env:
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-        run: ./gradlew :checkushka-core:publish --no-daemon
-
-      - name: Дистрибутивы CLI и MCP
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew --no-daemon \
-            :checkushka-cli:distZip :checkushka-cli:distTar \
-            :checkushka-mcp:distZip :checkushka-mcp:distTar
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "$GITHUB_REF_NAME"
+          fi
 
-      - name: GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Прикрепить jar-артефакты
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" \
+            cli/build/libs/checkushka-*-exec.jar \
+            core/build/libs/checkushka-core-*.jar \
+            --clobber
+
+      - name: Передать exec-jar в упаковку
+        uses: actions/upload-artifact@v4
         with:
-          generate_release_notes: true
-          files: |
-            core/build/libs/checkushka-core-*.jar
-            core/build/staging-deploy/ru/pravets/checkushka/checkushka-core/*/*.pom
-            cli/build/libs/checkushka-*-exec.jar
-            cli/build/distributions/*.zip
-            cli/build/distributions/*.tar
-            mcp/build/distributions/*.zip
-            mcp/build/distributions/*.tar
+          name: exec-jar
+          path: cli/build/libs/checkushka-*-exec.jar
+          if-no-files-found: error
+
+  images:
+    name: Образ (${{ matrix.prefix }})
+    needs: jars
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            prefix: win
+            python: python
+          - os: ubuntu-latest
+            prefix: nix
+            python: python3
+          - os: macos-latest
+            prefix: mac
+            python: python3
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Получить exec-jar
+        uses: actions/download-artifact@v4
+        with:
+          name: exec-jar
+          path: dist
+
+      - name: Собрать образ со встроенным JRE
+        run: ${{ matrix.python }} .github/scripts/package-image.py --jar dist --prefix ${{ matrix.prefix }} --out .
+
+      - name: Прикрепить архив к релизу
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" "checkushka_${{ matrix.prefix }}.zip" --clobber
+
+  publish:
+    name: Опубликовать релиз
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Снять черновик
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false
