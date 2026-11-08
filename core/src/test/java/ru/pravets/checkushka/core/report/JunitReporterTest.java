@@ -44,7 +44,7 @@ class JunitReporterTest {
 
   @Test
   void writesTestsuiteWithFailures() throws Exception {
-    var issue = new CheckResult("FormWithoutTitle", "Нет заголовка", Severity.MINOR,
+    var issue = new CheckResult("RoleWithoutRights", "Нет заголовка", Severity.MINOR,
       SourceLocation.of(root.resolve("Catalogs/Товары/Forms/Форма.xml"), null, "Форма"), 1);
 
     var bytes = render(new AnalysisResult(List.of(issue),

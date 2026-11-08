@@ -29,37 +29,45 @@ import org.junit.jupiter.api.Test;
 
 class ConsoleStreamsTest {
 
+  private static final Charset CP866 = Charset.forName("Cp866");
+  private static final Charset CP1251 = Charset.forName("Cp1251");
+
   @AfterEach
   void clearOverride() {
     System.clearProperty(ConsoleStreams.ENCODING_PROPERTY);
   }
 
   @Test
-  void usesUtf8WithoutConsole() {
-    assertThat(ConsoleStreams.charset(null)).isEqualTo(StandardCharsets.UTF_8);
+  void usesUtf8WithoutConsoleAndWithoutPipe() {
+    assertThat(ConsoleStreams.choose(null, null, null)).isEqualTo(StandardCharsets.UTF_8);
   }
 
   @Test
-  void usesConsoleCharsetWhenConsoleIsAvailable() {
-    var console = Charset.forName("Cp866");
-
-    assertThat(ConsoleStreams.charset(console)).isEqualTo(console);
+  void usesConsoleCharsetWhenOutputGoesToConsole() {
+    assertThat(ConsoleStreams.choose(null, CP866, CP1251)).isEqualTo(CP866);
   }
 
   @Test
-  void explicitPropertyWinsOverConsole() {
+  void usesConsoleCodePageForPipes() {
+    assertThat(ConsoleStreams.choose(null, null, CP866)).isEqualTo(CP866);
+  }
+
+  @Test
+  void explicitEncodingWins() {
+    assertThat(ConsoleStreams.choose(CP1251, CP866, CP866)).isEqualTo(CP1251);
+  }
+
+  @Test
+  void readsExplicitEncodingFromProperty() {
     System.setProperty(ConsoleStreams.ENCODING_PROPERTY, "Cp1251");
 
-    assertThat(ConsoleStreams.charset(Charset.forName("Cp866")))
-      .isEqualTo(Charset.forName("Cp1251"));
+    assertThat(ConsoleStreams.requested()).isEqualTo(CP1251);
   }
 
   @Test
-  void unknownCharsetFallsBackToAutomaticChoice() {
+  void unknownEncodingIsIgnored() {
     System.setProperty(ConsoleStreams.ENCODING_PROPERTY, "НетТакой");
-    var console = Charset.forName("Cp866");
 
-    assertThat(ConsoleStreams.charset(console)).isEqualTo(console);
-    assertThat(ConsoleStreams.charset(null)).isEqualTo(StandardCharsets.UTF_8);
+    assertThat(ConsoleStreams.requested()).isNull();
   }
 }

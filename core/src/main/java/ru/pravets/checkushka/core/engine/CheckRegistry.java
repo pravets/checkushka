@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Optional;
 import ru.pravets.checkushka.core.check.CheckMetadata;
 import ru.pravets.checkushka.core.check.MetadataCheck;
-import ru.pravets.checkushka.core.check.impl.FormWithoutTitleCheck;
 import ru.pravets.checkushka.core.check.impl.MetadataOrderCheck;
 import ru.pravets.checkushka.core.check.impl.RoleWithoutRightsCheck;
 
@@ -67,8 +66,7 @@ public final class CheckRegistry {
   public static CheckRegistry builtIn() {
     return new CheckRegistry(List.of(
       new MetadataOrderCheck(),
-      new RoleWithoutRightsCheck(),
-      new FormWithoutTitleCheck()));
+      new RoleWithoutRightsCheck()));
   }
 
   /**
@@ -88,6 +86,29 @@ public final class CheckRegistry {
    */
   public Optional<MetadataCheck> find(String key) {
     return Optional.ofNullable(checksByKey.get(key));
+  }
+
+  /**
+   * Проверяет, что все перечисленные ключи есть в реестре.
+   *
+   * <p>Нужен, чтобы опечатка или ключ удалённой проверки не превращались молча
+   * в пустой список проверок.
+   *
+   * @param keys ключи проверок
+   * @throws IllegalArgumentException если хотя бы один ключ неизвестен
+   */
+  public void requireKnownKeys(Collection<String> keys) {
+    var unknown = keys.stream()
+      .filter(key -> !checksByKey.containsKey(key))
+      .sorted()
+      .toList();
+    if (unknown.isEmpty()) {
+      return;
+    }
+    var available = checksByKey.keySet().stream().sorted().toList();
+    throw new IllegalArgumentException(
+      "Неизвестная проверка: " + String.join(", ", unknown)
+        + "; доступны: " + String.join(", ", available));
   }
 
   /**

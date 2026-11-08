@@ -21,13 +21,37 @@
 package ru.pravets.checkushka.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import ru.pravets.checkushka.core.check.Severity;
+import ru.pravets.checkushka.core.engine.CheckSettings;
+import ru.pravets.checkushka.core.engine.ChecksMode;
 
 class CheckushkaTest {
+
+  @TempDir
+  private Path projectDir;
 
   @Test
   void versionIsNotEmpty() {
     assertThat(Checkushka.version()).isNotBlank();
+  }
+
+  @Test
+  void rejectsUnknownCheckKey() {
+    var checks = new CheckSettings(ChecksMode.ONLY, Set.of("FormWithoutTitle"),
+      Map.of(), Map.of(), Severity.INFO, List.of(), Set.of());
+    var checkushka = Checkushka.with(new CheckushkaSettings(null, null, checks));
+
+    assertThatThrownBy(() -> checkushka.analyze(projectDir))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessageContaining("FormWithoutTitle")
+      .hasMessageContaining("MetadataOrder");
   }
 }

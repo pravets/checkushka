@@ -44,7 +44,7 @@ class CliCommandsTest {
   void listChecksPrintsAllChecks() {
     var output = run("list-checks");
 
-    assertThat(output).contains("MetadataOrder", "RoleWithoutRights", "FormWithoutTitle");
+    assertThat(output).contains("MetadataOrder", "RoleWithoutRights");
   }
 
   @Test
@@ -52,7 +52,7 @@ class CliCommandsTest {
     var output = run("list-checks", "--json");
 
     var node = new ObjectMapper().readTree(output);
-    assertThat(node).hasSize(3);
+    assertThat(node).hasSize(2);
     assertThat(node.get(0).path("key").asText()).isNotBlank();
     assertThat(node.get(0).path("targets").isArray()).isTrue();
   }

@@ -80,7 +80,11 @@ public final class Checkushka {
     var config = new ConfigLoader().load(projectRoot, settings.configPath());
     var checks = settings.checks() != null ? settings.checks() : config.checks();
     var format = settings.format() != null ? settings.format() : config.format();
+    var registry = CheckRegistry.builtIn();
+    // Проверяем ключи до разбора проекта: иначе опечатка в --checks всплывает
+    // только после долгого чтения конфигурации
+    registry.requireKnownKeys(checks.checkKeys());
     var project = new ProjectLoader().load(projectRoot, format);
-    return new CheckRunner(CheckRegistry.builtIn(), checks).run(project);
+    return new CheckRunner(registry, checks).run(project);
   }
 }

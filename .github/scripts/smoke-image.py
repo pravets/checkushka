@@ -8,6 +8,8 @@
 """
 
 import argparse
+import os
+import re
 import stat
 import subprocess
 import sys
@@ -25,6 +27,28 @@ PE_GUI = 2
 PE_CONSOLE = 3
 
 UNSAFE_FLAG = "--sun-misc-unsafe-memory-access=allow"
+
+# Функциональные проверки идут с принудительным UTF-8: иначе в консоли с cp866
+# вывод (штатно) будет в cp866, и сравнение строк зависело бы от окружения
+UTF8_ENV = {"CHECKUSHKA_STDOUT_ENCODING": "UTF-8"}
+
+
+def console_code_pages() -> list[str]:
+    """Кодировки, которыми потребитель может декодировать вывод: UTF-8 и кодовая страница."""
+    charsets = ["utf-8"]
+    if sys.platform != "win32":
+        return charsets
+    try:
+        result = subprocess.run(["cmd", "/c", "chcp"], capture_output=True, timeout=30, check=False)
+    except OSError:
+        return charsets
+    numbers = re.findall(rb"(\d+)", result.stdout)
+    if not numbers:
+        return charsets
+    code_page = int(numbers[-1])
+    if code_page != 65001:
+        charsets.append(f"cp{code_page}")
+    return charsets
 
 
 def launcher_config(root: Path) -> Path:
@@ -59,11 +83,12 @@ def pe_subsystem(path: Path) -> int | None:
     return int.from_bytes(data[pe + 24 + 0x44:pe + 24 + 0x46], "little")
 
 
-def run(launcher: Path, args: list[str], cwd: Path) -> subprocess.CompletedProcess:
+def run(launcher: Path, args: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
         [str(launcher), *args],
         capture_output=True,
         cwd=cwd,
+        env={**os.environ, **(env or {})},
         timeout=300,
         check=False,
     )
@@ -80,8 +105,9 @@ def expect(
     exit_code: int,
     fragment: str,
     stream: str = "stdout",
+    env: dict[str, str] | None = None,
 ) -> str:
-    result = run(launcher, args, cwd)
+    result = run(launcher, args, cwd, env)
     text = decoded(result.stdout if stream == "stdout" else result.stderr)
     label = " ".join(args) or "<без аргументов>"
     if result.returncode != exit_code:
@@ -96,6 +122,19 @@ def expect(
         )
     print(f"ok   {label} -> exit {exit_code}, {stream} contains {fragment!r}")
     return text
+
+
+def expect_decodable(launcher: Path, root: Path, fragment: str) -> None:
+    """Автоматическая кодировка: в консольном окружении допустима кодовая страница."""
+    result = run(launcher, ["--help"], root)
+    for charset in console_code_pages():
+        if fragment in result.stdout.decode(charset, errors="replace"):
+            print(f"ok   automatic encoding decodes as {charset}")
+            return
+    raise SystemExit(
+        f"FAIL --help output does not decode as any of {console_code_pages()}\n"
+        f"bytes: {result.stdout[:120]!r}"
+    )
 
 
 def main() -> None:
@@ -141,10 +180,12 @@ def main() -> None:
         # Неизвестный JVM-флаг уронил бы запуск ниже, поэтому отдельная проверка версии
         # встроенного JRE не нужна: успешные запуски лаунчера и есть доказательство.
 
-        expect(launcher, ["--version"], root, 0, "checkushka ")
-        expect(launcher, ["--help"], root, 0, "Проверка метаданных")
-        expect(launcher, ["list-checks"], root, 0, "MetadataOrder")
-        expect(launcher, ["check", "__no_such_directory__"], root, 2, "Ошибка", stream="stderr")
+        expect(launcher, ["--version"], root, 0, "checkushka ", env=UTF8_ENV)
+        expect(launcher, ["--help"], root, 0, "Проверка метаданных", env=UTF8_ENV)
+        expect(launcher, ["list-checks"], root, 0, "MetadataOrder", env=UTF8_ENV)
+        expect(launcher, ["check", "__no_such_directory__"], root, 2, "Ошибка",
+               stream="stderr", env=UTF8_ENV)
+        expect_decodable(launcher, root, "Проверка метаданных")
 
     print(f"smoke test passed: {archive.name}")
 

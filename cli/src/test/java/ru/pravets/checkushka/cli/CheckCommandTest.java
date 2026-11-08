@@ -22,14 +22,27 @@ package ru.pravets.checkushka.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class CheckCommandTest {
+
+  @TempDir
+  private Path projectDir;
 
   @Test
   void returnsErrorForMissingProject() {
     var exitCode = Main.createCommandLine()
       .execute("check", "no-such-project-dir-checkushka");
+
+    assertThat(exitCode).isEqualTo(CheckCommand.EXIT_ERROR);
+  }
+
+  @Test
+  void returnsErrorForUnknownCheck() {
+    var exitCode = Main.createCommandLine()
+      .execute("check", projectDir.toString(), "--checks", "FormWithoutTitle");
 
     assertThat(exitCode).isEqualTo(CheckCommand.EXIT_ERROR);
   }
