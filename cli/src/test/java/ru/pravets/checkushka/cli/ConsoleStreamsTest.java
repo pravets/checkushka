@@ -58,6 +58,13 @@ class ConsoleStreamsTest {
   }
 
   @Test
+  void fallsBackToUtf8WhenConsoleCannotEncodeCyrillic() {
+    var ascii = StandardCharsets.US_ASCII;
+
+    assertThat(ConsoleStreams.choose(null, ascii, ascii)).isEqualTo(StandardCharsets.UTF_8);
+  }
+
+  @Test
   void readsExplicitEncodingFromProperty() {
     System.setProperty(ConsoleStreams.ENCODING_PROPERTY, "Cp1251");
 

@@ -55,6 +55,9 @@ final class ConsoleStreams {
   /** Переменная окружения с принудительной кодировкой вывода. */
   static final String ENCODING_ENV = "CHECKUSHKA_STDOUT_ENCODING";
 
+  /** Текст для проверки, что кодировка умеет кириллицу. */
+  private static final String CYRILLIC_PROBE = "Проверка метаданных";
+
   /**
    * Поток поверх stdout, нужный для проверки «пайп или файл».
    *
@@ -98,13 +101,23 @@ final class ConsoleStreams {
     if (requested != null) {
       return requested;
     }
-    if (consoleCharset != null) {
+    if (isUsable(consoleCharset)) {
       return consoleCharset;
     }
-    if (pipeCharset != null) {
+    if (isUsable(pipeCharset)) {
       return pipeCharset;
     }
     return StandardCharsets.UTF_8;
+  }
+
+  /**
+   * Годится ли кодировка для русского текста.
+   *
+   * <p>Кодовая страница вроде Cp437 кириллицу не кодирует и превращает сообщения в «????»;
+   * в этом случае лучше отдать UTF-8, чем терять текст.
+   */
+  private static boolean isUsable(Charset charset) {
+    return charset != null && charset.newEncoder().canEncode(CYRILLIC_PROBE);
   }
 
   /**
