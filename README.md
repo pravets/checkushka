@@ -1,5 +1,8 @@
 # checkushka
 
+![License](https://img.shields.io/github/license/pravets/checkushka)
+[![Telegram](https://telegram-badge.vercel.app/api/telegram-badge?channelId=@pravets_IT)](https://t.me/+GKGRmAwghxllYzIy)
+
 Проверка метаданных и форм конфигураций 1С:Предприятие 8 на соответствие стандартам разработки
 и формальным правилам.
 
@@ -13,8 +16,9 @@
 
 ## Статус
 
-Проект в разработке, версия 0.1.0: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
-Следующие этапы — публикация артефактов (M4) и параллельный обход объектов (M5), см. [docs/roadmap.md](docs/roadmap.md).
+Проект в разработке, версия 0.2.3: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
+Артефакт `ru.pravets.checkushka:checkushka-core` публикуется в Maven Central; следующие этапы —
+параллельный обход объектов (M5) и LSP-адаптер, см. [docs/roadmap.md](docs/roadmap.md).
 
 ## Требования
 
