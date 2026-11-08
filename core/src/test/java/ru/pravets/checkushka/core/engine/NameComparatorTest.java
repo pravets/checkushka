@@ -43,8 +43,26 @@ class NameComparatorTest {
 
   @Test
   void comparesCyrillicAndLatin() {
-    assertThat(comparator.compare("Alpha", "Бета")).isNotZero();
+    assertThat(comparator.compare("Alpha", "Бета")).isNegative();
     assertThat(comparator.compare("Бета", "Бета")).isZero();
+  }
+
+  @Test
+  void ignoresCaseForMixedNames() {
+    assertThat(comparator.compare("НеЗаполненный", "Незаполненный")).isZero();
+    assertThat(comparator.compare("МК_ЦветФона", "МЛ_ЦветФона")).isNegative();
+  }
+
+  @Test
+  void treatsYoAsYe() {
+    assertThat(comparator.compare("Ёлка", "Елка")).isZero();
+    assertThat(comparator.compare("Ёж", "Жук")).isNegative();
+  }
+
+  @Test
+  void keepsRussianAlphabetOrder() {
+    assertThat(comparator.compare("Альфа", "Бета")).isNegative();
+    assertThat(comparator.compare("Юла", "Яблоко")).isNegative();
   }
 
   @Test

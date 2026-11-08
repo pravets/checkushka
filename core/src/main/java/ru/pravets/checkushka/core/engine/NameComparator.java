@@ -20,7 +20,6 @@
  */
 package ru.pravets.checkushka.core.engine;
 
-import java.text.Collator;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -29,7 +28,13 @@ import java.util.regex.Pattern;
  * Сравнение имён объектов метаданных: без учёта регистра, с числовыми частями как числами.
  *
  * <p>Пример: {@code Модуль2} меньше {@code Модуль10}, а {@code Общий} и {@code общий}
- * считаются равными по основному порядку.
+ * считаются равными.
+ *
+ * <p>Сравнение намеренно не использует {@link java.text.Collator}: тот зависит от данных
+ * локалей в рантайме, и в образе без {@code jdk.localedata} молча сравнивал бы по-другому.
+ * Правило простое и одинаковое везде: имена приводятся к верхнему регистру, {@code Ё}
+ * приравнивается к {@code Е}, затем сравниваются коды символов. Для кириллицы это и есть
+ * алфавитный порядок, а латиница и знаки подчиняются обычному порядку кодов.
  */
 public final class NameComparator implements Comparator<String> {
 
@@ -37,12 +42,7 @@ public final class NameComparator implements Comparator<String> {
   private static final Pattern LEADING_ZEROS = Pattern.compile("^0+(?=\\d)");
   private static final Pattern DIGITS = Pattern.compile("\\d+");
 
-  private final Collator collator;
-
   private NameComparator() {
-    collator = Collator.getInstance(Locale.forLanguageTag("ru-RU"));
-    collator.setStrength(Collator.PRIMARY);
-    collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
   }
 
   /**
@@ -59,7 +59,7 @@ public final class NameComparator implements Comparator<String> {
     // Имена, различающиеся только регистром, считаются равными: для порядка объектов
     // метаданных это ожидаемое поведение, а стабильность отчёта обеспечивается сортировкой
     // результатов в движке.
-    return collator.compare(normalize(left), normalize(right));
+    return normalize(left).compareTo(normalize(right));
   }
 
   private static String normalize(String value) {
@@ -72,7 +72,9 @@ public final class NameComparator implements Comparator<String> {
       last = matcher.end();
     }
     builder.append(value, last, value.length());
-    return builder.toString();
+    return builder.toString()
+      .toUpperCase(Locale.ROOT)
+      .replace('Ё', 'Е');
   }
 
   private static String padNumber(String digits) {

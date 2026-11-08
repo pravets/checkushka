@@ -67,7 +67,7 @@ public final class ConfigLoader {
 
     JsonNode root;
     try {
-      root = mapper.readTree(Files.readString(file));
+      root = mapper.readTree(stripBom(Files.readString(file)));
     } catch (IOException e) {
       throw new ConfigException("Не удалось прочитать " + file + ": " + e.getMessage(), e);
     }
@@ -90,6 +90,14 @@ public final class ConfigLoader {
       parsedParameters.disabled());
 
     return new CheckushkaConfig(language, format, settings);
+  }
+
+  /**
+   * Убирает BOM в начале файла: Блокнот и PowerShell сохраняют JSON с ним,
+   * а Jackson на таком файле падает с невнятной ошибкой про первый символ.
+   */
+  private static String stripBom(String content) {
+    return !content.isEmpty() && content.charAt(0) == '\uFEFF' ? content.substring(1) : content;
   }
 
   private static String text(JsonNode node, String field, String defaultValue) {

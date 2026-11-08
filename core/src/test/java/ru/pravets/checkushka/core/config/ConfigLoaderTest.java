@@ -65,6 +65,16 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void acceptsFileWithBom() throws IOException {
+    var file = projectDir.resolve("checkushka.json");
+    Files.writeString(file, "\uFEFF" + CONFIG);
+
+    var config = new ConfigLoader().load(projectDir, null);
+
+    assertThat(config.checks().mode()).isEqualTo(ChecksMode.ONLY);
+  }
+
+  @Test
   void readsConfigFromProjectRoot() throws IOException {
     Files.writeString(projectDir.resolve("checkushka.json"), CONFIG);
 
