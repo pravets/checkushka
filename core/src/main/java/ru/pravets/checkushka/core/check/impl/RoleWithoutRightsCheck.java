@@ -62,7 +62,7 @@ public final class RoleWithoutRightsCheck implements MetadataCheck {
     var file = context.project().layout().fileOf(role.getMdoRef()).orElse(context.project().root());
     return List.of(new CheckResult(
       KEY,
-      "Роль «" + role.getName() + "» не содержит установленных прав",
+      "Роль \"" + role.getName() + "\" не содержит установленных прав",
       META.severity(),
       SourceLocation.of(file, null, role.getMdoRef()),
       META.minutesToFix()));

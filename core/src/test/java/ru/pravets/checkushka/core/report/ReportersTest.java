@@ -44,7 +44,7 @@ class ReportersTest {
   private AnalysisResult result() {
     var issue = new CheckResult(
       "MetadataOrder",
-      "Объект «МодульА» должен располагаться раньше «МодульБ»",
+      "Общие модули не отсортированы по имени: нарушений 3",
       Severity.MINOR,
       SourceLocation.of(root.resolve("Configuration.xml"), 12, "CommonModule.МодульА"),
       1);

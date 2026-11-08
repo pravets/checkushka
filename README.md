@@ -109,7 +109,7 @@ checkushka check путь --fail-on CRITICAL
 
 | Ключ | Что проверяет |
 | --- | --- |
-| `MetadataOrder` | порядок объектов в `ChildObjects` конфигурации; режимы префиксов `none`, `stripPrefix`, `groupByPrefix` |
+| `MetadataOrder` | порядок объектов в `ChildObjects` конфигурации; режимы префиксов `none`, `stripPrefix`, `groupByPrefix`; по умолчанию одно замечание на тип метаданных, `detail: object` — на каждый объект |
 | `RoleWithoutRights` | роль, у которой не установлено ни одного права |
 
 Ключи проверок в `--checks` и `checks.keys` сверяются с реестром: неизвестный ключ

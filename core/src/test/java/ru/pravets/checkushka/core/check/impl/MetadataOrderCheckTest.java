@@ -34,7 +34,37 @@ class MetadataOrderCheckTest {
   private static final Path FILE = Path.of("Configuration.xml");
 
   @Test
-  void reportsObjectOutOfOrder() {
+  void reportsOneIssuePerType() {
+    var order = order(
+      new SourceOrder.Entry("CommonModule", "МодульБ", 5),
+      new SourceOrder.Entry("CommonModule", "МодульА", 6),
+      new SourceOrder.Entry("Document", "ДокументБ", 7),
+      new SourceOrder.Entry("Document", "ДокументА", 8));
+
+    var results = MetadataOrderCheck.analyze(order, PrefixMode.NONE, List.of());
+
+    assertThat(results).hasSize(2);
+    assertThat(results.get(0).message()).isEqualTo(
+      "Общие модули не отсортированы по имени: нарушений 1");
+    assertThat(results.get(1).message()).isEqualTo(
+      "Документы не отсортированы по имени: нарушений 1");
+  }
+
+  @Test
+  void countsAllViolationsOfType() {
+    var order = order(
+      new SourceOrder.Entry("CommonModule", "МодульБ", 1),
+      new SourceOrder.Entry("CommonModule", "МодульА", 2),
+      new SourceOrder.Entry("CommonModule", "Модуль0", 3));
+
+    var results = MetadataOrderCheck.analyze(order, PrefixMode.NONE, List.of());
+
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).message()).endsWith("нарушений 2");
+  }
+
+  @Test
+  void pointsToFirstViolation() {
     var order = order(
       new SourceOrder.Entry("CommonModule", "МодульБ", 5),
       new SourceOrder.Entry("CommonModule", "МодульА", 6));
@@ -42,8 +72,34 @@ class MetadataOrderCheckTest {
     var results = MetadataOrderCheck.analyze(order, PrefixMode.NONE, List.of());
 
     assertThat(results).hasSize(1);
-    assertThat(results.get(0).message()).contains("МодульА").contains("МодульБ");
     assertThat(results.get(0).location().line()).isEqualTo(6);
+    assertThat(results.get(0).location().mdoRef()).isEqualTo("CommonModule");
+  }
+
+  @Test
+  void unknownTypeFallsBackToPlatformName() {
+    var order = order(
+      new SourceOrder.Entry("UnknownThing", "Б", 1),
+      new SourceOrder.Entry("UnknownThing", "А", 2));
+
+    var results = MetadataOrderCheck.analyze(order, PrefixMode.NONE, List.of());
+
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).message()).startsWith("Метаданные типа \"UnknownThing\"");
+  }
+
+  @Test
+  void detailObjectReportsEveryObject() {
+    var order = order(
+      new SourceOrder.Entry("CommonModule", "МодульБ", 5),
+      new SourceOrder.Entry("CommonModule", "МодульА", 6));
+
+    var results = MetadataOrderCheck.analyze(order, PrefixMode.NONE, List.of(),
+      MetadataOrderCheck.DETAIL_OBJECT);
+
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).message()).isEqualTo(
+      "Объект \"МодульА\" должен располагаться раньше \"МодульБ\"");
     assertThat(results.get(0).location().mdoRef()).isEqualTo("CommonModule.МодульА");
   }
 
