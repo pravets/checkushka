@@ -15,14 +15,10 @@ import zipfile
 from pathlib import Path
 
 WIN_CONSOLE_WRAPPER = r"""@echo off
-rem Switch console to UTF-8 for this run, previous code page is restored on exit
-for /f "tokens=2 delims=:" %%a in ('chcp') do set "CHECKUSHKA_OLD_CP=%%a"
-set "CHECKUSHKA_OLD_CP=%CHECKUSHKA_OLD_CP: =%"
-chcp 65001 >nul
+rem Псевдоним для checkushka.exe, оставлен для уже написанных скриптов и ярлыков.
+rem Кодировку вывода выбирает сама JVM по текущей кодовой странице консоли.
 "%~dp0checkushka.exe" %*
-set "CHECKUSHKA_EXIT=%ERRORLEVEL%"
-if defined CHECKUSHKA_OLD_CP chcp %CHECKUSHKA_OLD_CP% >nul
-exit /b %CHECKUSHKA_EXIT%
+exit /b %ERRORLEVEL%
 """
 
 MAIN_CLASS = "ru.pravets.checkushka.cli.Main"
@@ -74,9 +70,12 @@ def build_image(jar: Path, version: str, work: Path) -> Path:
         "--main-class", MAIN_CLASS,
         "--dest", str(dest),
         "--java-options", "-Dfile.encoding=UTF-8",
-        "--java-options", "-Dstdout.encoding=UTF-8",
-        "--java-options", "-Dstderr.encoding=UTF-8",
     ]
+    if sys.platform == "win32":
+        # Без --win-console лаунчер собирается как GUI-приложение: интерактивный cmd
+        # не подключает его к консоли и не ждёт завершения, поэтому команда молчит,
+        # а код возврата теряется. На Linux и macOS опция не существует.
+        command.append("--win-console")
     print(f"jpackage: {jar.name}, version {version}")
     subprocess.run(command, check=True)
 

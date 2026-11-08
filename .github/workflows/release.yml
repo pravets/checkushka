@@ -97,6 +97,9 @@ jobs:
       - name: Собрать образ со встроенным JRE
         run: ${{ matrix.python }} .github/scripts/package-image.py --jar dist --prefix ${{ matrix.prefix }} --out .
 
+      - name: Проверить образ
+        run: ${{ matrix.python }} .github/scripts/smoke-image.py --archive checkushka_${{ matrix.prefix }}.zip --prefix ${{ matrix.prefix }}
+
       - name: Прикрепить архив к релизу
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

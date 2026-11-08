@@ -39,7 +39,7 @@ public final class Main implements Runnable {
    * @param args аргументы командной строки
    */
   public static void main(String[] args) {
-    Utf8Console.configure();
+    ConsoleStreams.configure();
     System.exit(createCommandLine().execute(args));
   }
 
