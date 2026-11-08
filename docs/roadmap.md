@@ -71,5 +71,6 @@
 
 - Плагин лицензионных заголовков `cloud.rio.license` ругается на `Task.project` во время
   выполнения: в Gradle 10 это станет ошибкой. Заменить на Spotless или на собственную задачу.
-- XStream из mdclasses пишет предупреждения `sun.misc.Unsafe` на JDK 24+; следить за
-  обновлениями mdclasses.
+- XStream из mdclasses пишет предупреждения `sun.misc.Unsafe` на JDK 24+; в готовых образах
+  они заглушены флагом `--sun-misc-unsafe-memory-access=allow`, в `java -jar` оставлены ради
+  совместимости с JDK 21. Следить за обновлениями mdclasses.

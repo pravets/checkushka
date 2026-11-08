@@ -24,6 +24,17 @@ LAUNCHERS = {
 PE_GUI = 2
 PE_CONSOLE = 3
 
+UNSAFE_FLAG = "--sun-misc-unsafe-memory-access=allow"
+
+
+def launcher_config(root: Path) -> Path:
+    """Ищет cfg лаунчера, в котором jpackage хранит java-options образа."""
+    for candidate in sorted(root.rglob("*.cfg")):
+        text = candidate.read_text(encoding="utf-8", errors="replace")
+        if "ru.pravets.checkushka.cli.Main" in text:
+            return candidate
+    raise SystemExit("FAIL launcher config (*.cfg) with the main class not found in the image")
+
 
 def extract(archive: Path, dest: Path) -> None:
     with zipfile.ZipFile(archive) as package:
@@ -119,6 +130,16 @@ def main() -> None:
                     "Соберите образ с jpackage --win-console, иначе cmd не подключит процесс к консоли"
                 )
             print("ok   PE subsystem = 3 (WINDOWS_CUI)")
+
+        config = launcher_config(root)
+        if UNSAFE_FLAG not in config.read_text(encoding="utf-8", errors="replace"):
+            raise SystemExit(
+                f"FAIL {config.name} has no {UNSAFE_FLAG}: XStream warnings about sun.misc.Unsafe "
+                "would flood stderr on every run"
+            )
+        print(f"ok   {config.name} sets {UNSAFE_FLAG}")
+        # Неизвестный JVM-флаг уронил бы запуск ниже, поэтому отдельная проверка версии
+        # встроенного JRE не нужна: успешные запуски лаунчера и есть доказательство.
 
         expect(launcher, ["--version"], root, 0, "checkushka ")
         expect(launcher, ["--help"], root, 0, "Проверка метаданных")

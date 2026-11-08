@@ -24,6 +24,11 @@ exit /b %ERRORLEVEL%
 MAIN_CLASS = "ru.pravets.checkushka.cli.Main"
 APP_NAME = "checkushka"
 
+# Флаг глушит предупреждения XStream из mdclasses об устаревшем sun.misc.Unsafe.
+# Появился в JDK 23: на более старом JDK это «Unrecognized option», и образ не запустится.
+UNSAFE_FLAG = "--sun-misc-unsafe-memory-access=allow"
+UNSAFE_FLAG_MAJOR = 23
+
 
 def find_exec_jar(source: Path) -> Path:
     if source.is_dir():
@@ -52,6 +57,18 @@ def jpackage_command() -> str:
     return "jpackage"
 
 
+def jpackage_major() -> int:
+    """Версия JDK, которым собираем образ: нужна, чтобы не подсунуть старой JVM новый флаг."""
+    try:
+        result = subprocess.run(
+            [jpackage_command(), "--version"], capture_output=True, text=True, check=True
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return 0
+    match = re.match(r"(\d+)", result.stdout.strip())
+    return int(match.group(1)) if match else 0
+
+
 def build_image(jar: Path, version: str, work: Path) -> Path:
     input_dir = work / "input"
     input_dir.mkdir()
@@ -71,6 +88,11 @@ def build_image(jar: Path, version: str, work: Path) -> Path:
         "--dest", str(dest),
         "--java-options", "-Dfile.encoding=UTF-8",
     ]
+    if jpackage_major() >= UNSAFE_FLAG_MAJOR:
+        # XStream из mdclasses вызывает sun.misc.Unsafe, и JDK 25 печатает об этом
+        # четыре WARNING в stderr на каждый запуск. В jar-запуск флаг не встраиваем:
+        # jar собирается под Java 21, где такой опции ещё нет
+        command += ["--java-options", UNSAFE_FLAG]
     if sys.platform == "win32":
         # Без --win-console лаунчер собирается как GUI-приложение: интерактивный cmd
         # не подключает его к консоли и не ждёт завершения, поэтому команда молчит,
