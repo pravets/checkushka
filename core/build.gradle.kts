@@ -59,9 +59,13 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git://github.com/pravets/checkushka.git")
+                    connection.set("scm:git:https://github.com/pravets/checkushka.git")
                     developerConnection.set("scm:git:git@github.com:pravets/checkushka.git")
                     url.set("https://github.com/pravets/checkushka")
+                }
+                issueManagement {
+                    system.set("GitHub")
+                    url.set("https://github.com/pravets/checkushka/issues")
                 }
             }
         }

@@ -49,6 +49,26 @@ java -jar checkushka-<версия>-exec.jar mcp
 через `java -jar` флаг нужно добавить самому — в jar он не встроен, чтобы не ломать запуск
 на JDK 21.
 
+## Использование как библиотеки
+
+Ядро проверок публикуется в Maven Central под координатами
+`ru.pravets.checkushka:checkushka-core`:
+
+```kotlin
+dependencies {
+    implementation("ru.pravets.checkushka:checkushka-core:0.2.3")
+}
+```
+
+```java
+var result = Checkushka.with(CheckushkaSettings.defaults())
+  .analyze(Path.of("путь/к/выгрузке"));
+```
+
+Вместе с ядром приезжают `mdclasses`, `bsl-common-library`, `jackson` и `slf4j`; для отчётов
+в JSON/SARIF ничего дополнительно подключать не нужно. Как выпускается артефакт — в
+[docs/publishing.md](docs/publishing.md).
+
 ## Готовые сборки под ОС
 
 В каждом релизе есть архивы со встроенным JRE — Java на машине не нужна:
@@ -191,11 +211,13 @@ Workflow [release.yml](.github/workflows/release.yml):
    `checkushka-core-*.jar`, sources и javadoc;
 3. на трёх ОС собирает образы со встроенным JRE (`checkushka_win.zip`, `_nix.zip`, `_mac.zip`)
    скриптом [.github/scripts/package-image.py](.github/scripts/package-image.py);
-4. снимает с релиза статус черновика.
+4. публикует `checkushka-core` в Maven Central (job «Публикация в Maven Central»; при
+   `USER_MANAGED` публикацию подтверждают кнопкой Publish в Central Portal);
+5. снимает с релиза статус черновика.
 
-Публикации в Maven Central в этом workflow нет. Локальная публикация `checkushka-core`
-в staging-репозиторий остаётся доступной вручную (`./gradlew :checkushka-core:publish`);
-GPG-подпись включается переменными `GPG_SIGNING_KEY` / `GPG_SIGNING_PASSWORD`.
+Секреты, ключ на keyserver и порядок проверки описаны в
+[docs/publishing.md](docs/publishing.md). Если секреты не заданы, шаг публикации в Central
+пропускается с сообщением и не ломает релиз.
 
 ## Структура
 

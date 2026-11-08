@@ -62,6 +62,35 @@ jobs:
           path: cli/build/libs/checkushka-*-exec.jar
           if-no-files-found: error
 
+  central:
+    name: Публикация в Maven Central
+    needs: jars
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Опубликовать в Central Portal
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$MAVEN_CENTRAL_USERNAME" ]; then
+            echo "Секреты Maven Central не заданы — публикация пропущена"
+            exit 0
+          fi
+          ./gradlew publishAggregationToCentralPortal --no-daemon
+
   images:
     name: Образ (${{ matrix.prefix }})
     needs: jars
