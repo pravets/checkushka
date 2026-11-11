@@ -23,9 +23,9 @@ nmcpSettings {
     centralPortal {
         username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME").getOrElse("")
         password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD").getOrElse("")
-        // Первые выпуски подтверждаются вручную в UI Central Portal; после проверки
-        // можно переключить на AUTOMATIC, и портал будет публиковать сам
-        publishingType = "USER_MANAGED"
+        // Первая публикация (0.2.3) прошла вручную через Central Portal; дальше портал
+        // публикует сам, без кнопки Publish
+        publishingType = "AUTOMATIC"
         publicationName = "checkushka"
     }
 }

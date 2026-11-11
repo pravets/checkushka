@@ -11,12 +11,30 @@ workflow при пуше тега `v*`. Namespace `ru.pravets` подтверж�
   `checkushka-core`; `checkushka-cli` и `checkushka-mcp` приложения и не публикуются.
 - В бандл попадают `jar`, `-sources.jar`, `-javadoc.jar`, `.pom`, `.module` и `.asc`-подпись
   на каждый файл. Javadoc-джар собирается только в CI (по переменной `CI`) или с `-Pjavadoc`.
-- `publishingType = "USER_MANAGED"`: бандл загружается, но публикацию нужно подтвердить
-  кнопкой **Publish** в [central.sonatype.com](https://central.sonatype.com/) → Deployments.
-  После проверки схемы можно переключить на `AUTOMATIC` в `settings.gradle.kts`.
+- `publishingType = "AUTOMATIC"`: портал публикует загруженный бандл сам. Первая публикация
+  (`0.2.3`) проходила в режиме `USER_MANAGED` с ручным подтверждением в UI; сейчас включён
+  автоматический режим, и выпуск по тегу доходит до Maven Central без клика.
 - Job `Публикация в Maven Central` в [release.yml](../.github/workflows/release.yml) идёт
   параллельно сборке образов и не блокирует GitHub-релиз. Если секреты не заданы, шаг
   печатает «Секреты Maven Central не заданы — публикация пропущена» и завершается успешно.
+
+## Ключ подписи
+
+Для артефактов используется отдельный ключ, не тот, которым подписываются коммиты:
+
+```
+011681C6935840855A4AC924A4E78D837B8CF8F9
+ed25519, [SC], действует до 2029-11-11, UID Iosif Pravets <i@pravets.ru>
+```
+
+Публичная часть выложена на `keys.openpgp.org` и `keyserver.ubuntu.com` — без этого Central
+не проверит подписи.
+
+**Экспорт только через `--output`**: `gpg --armor --output key.asc --export-secret-keys <FPR>`.
+Если писать через `>` в PowerShell, файл получится в UTF-16 с NUL-байтами, и GitHub Actions
+не сможет запустить workflow с таким секретом — job падает на старте (`startup_failure`,
+0 шагов). Проверить файл перед загрузкой: первая строка `-----BEGIN PGP PRIVATE KEY BLOCK-----`,
+NUL-байтов нет.
 
 ## Секреты репозитория
 
