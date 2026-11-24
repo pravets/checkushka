@@ -99,6 +99,42 @@ class SettingsVariantLocatorTest {
     assertThat(SettingsVariantLocator.nameLine(file, -1)).isNull();
   }
 
+  @Test
+  void ignoresVariantsOfNestedSchemas() throws IOException {
+    var file = write("""
+      <DataCompositionSchema>
+        <nestedSchema>
+          <schema>
+            <settingsVariant>
+              <dcsset:name>Основной</dcsset:name>
+            </settingsVariant>
+          </schema>
+        </nestedSchema>
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+      </DataCompositionSchema>
+      """);
+
+    // вариант верхнего уровня один, вложенный индекс не сдвигает
+    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(10);
+    assertThat(SettingsVariantLocator.nameLine(file, 1)).isNull();
+  }
+
+  @Test
+  void respectsDeclaredNamespaces() throws IOException {
+    var file = write("""
+      <DataCompositionSchema xmlns="http://v8.1c.ru/8.1/data-composition-system/schema"
+          xmlns:dcsset="http://v8.1c.ru/8.1/data-composition-system/settings">
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+      </DataCompositionSchema>
+      """);
+
+    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(4);
+  }
+
   private Path write(String content) throws IOException {
     var file = dir.resolve("Template.xml");
     Files.writeString(file, content);

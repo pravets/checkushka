@@ -21,24 +21,27 @@
 package ru.pravets.checkushka.core.check.impl;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 /**
  * Поиск строки варианта отчёта в файле макета схемы компоновки данных.
  *
- * <p>Модель mdclasses не хранит номера строк, поэтому позиция ищется по тексту файла: блоки
- * {@code <settingsVariant>} перебираются в порядке документа (он совпадает с порядком вариантов
- * в модели), внутри блока берётся строка элемента {@code <dcsset:name>}. Разбор нужен только
- * для расположения замечания: решение о нарушении принимается по модели.
+ * <p>Модель mdclasses не хранит номера строк, поэтому позиция читается из файла потоковым
+ * разбором. Учитываются только варианты верхнего уровня — прямые дети
+ * {@code DataCompositionSchema}, как их и читает mdclasses: варианты вложенных схем
+ * ({@code nestedSchema/schema}) относятся к вложенному отчёту и индекс не сдвигают.
+ * Внутри варианта берётся строка элемента {@code dcsset:name}. Разбор нужен только для
+ * расположения замечания: решение о нарушении принимается по модели.
  */
 final class SettingsVariantLocator {
 
-  private static final String VARIANT_NODE = "<settingsVariant";
-  private static final String VARIANT_END_NODE = "</settingsVariant";
-  private static final String NAME_NODE = "<dcsset:name";
+  private static final String VARIANT = "settingsVariant";
+  private static final String NAME = "name";
 
   private SettingsVariantLocator() {
   }
@@ -54,41 +57,75 @@ final class SettingsVariantLocator {
     if (file == null || index < 0) {
       return null;
     }
-    List<String> lines;
-    try {
-      lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-    } catch (IOException e) {
+
+    var factory = XMLInputFactory.newFactory();
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false);
+    factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+    factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+
+    try (var stream = Files.newInputStream(file)) {
+      var reader = factory.createXMLStreamReader(stream);
+      try {
+        return nameLine(reader, index);
+      } finally {
+        reader.close();
+      }
+    } catch (IOException | XMLStreamException | RuntimeException e) {
       return null;
     }
+  }
 
+  private static Integer nameLine(XMLStreamReader reader, int index)
+    throws XMLStreamException {
+    var depth = 0;
     var current = -1;
-    for (var lineNumber = 0; lineNumber < lines.size(); lineNumber++) {
-      if (!lines.get(lineNumber).contains(VARIANT_NODE)) {
-        continue;
+
+    while (reader.hasNext()) {
+      var event = reader.next();
+      if (event == XMLStreamConstants.START_ELEMENT) {
+        depth++;
+        if (depth == 2 && VARIANT.equalsIgnoreCase(reader.getLocalName())) {
+          current++;
+          if (current == index) {
+            var variantLine = reader.getLocation().getLineNumber();
+            var nameLine = nameLineInside(reader);
+            return nameLine == null ? variantLine : nameLine;
+          }
+        }
+      } else if (event == XMLStreamConstants.END_ELEMENT) {
+        depth--;
       }
-      current++;
-      if (current != index) {
-        continue;
-      }
-      var inside = nameLineInside(lines, lineNumber);
-      return inside == null ? lineNumber + 1 : inside;
     }
     return null;
   }
 
-  private static Integer nameLineInside(List<String> lines, int variantLine) {
-    for (var lineNumber = variantLine; lineNumber < lines.size(); lineNumber++) {
-      var line = lines.get(lineNumber);
-      if (lineNumber > variantLine && line.contains(VARIANT_NODE)) {
-        return null;
-      }
-      if (line.contains(VARIANT_END_NODE)) {
-        return null;
-      }
-      if (line.contains(NAME_NODE)) {
-        return lineNumber + 1;
+  /**
+   * Ищет строку {@code name} среди прямых детей текущего варианта.
+   *
+   * @param reader потоковый читатель, стоящий на {@code settingsVariant}
+   * @return строка элемента {@code name} или {@code null}, если его нет
+   */
+  private static Integer nameLineInside(XMLStreamReader reader) throws XMLStreamException {
+    var depth = 0;
+    while (reader.hasNext()) {
+      var event = reader.next();
+      if (event == XMLStreamConstants.START_ELEMENT) {
+        depth++;
+        if (depth == 1 && NAME.equalsIgnoreCase(localName(reader.getLocalName()))) {
+          return reader.getLocation().getLineNumber();
+        }
+      } else if (event == XMLStreamConstants.END_ELEMENT) {
+        if (depth == 0) {
+          return null;
+        }
+        depth--;
       }
     }
     return null;
+  }
+
+  private static String localName(String name) {
+    var colon = name.indexOf(':');
+    return colon >= 0 ? name.substring(colon + 1) : name;
   }
 }
