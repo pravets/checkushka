@@ -16,7 +16,7 @@
 
 ## Статус
 
-Проект в разработке, версия 0.2.3: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
+Проект в разработке, версия 0.3.0: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
 Артефакт `ru.pravets.checkushka:checkushka-core` публикуется в Maven Central; следующие этапы —
 параллельный обход объектов (M5) и LSP-адаптер, см. [docs/roadmap.md](docs/roadmap.md).
 
@@ -60,7 +60,7 @@ java -jar checkushka-<версия>-exec.jar mcp
 
 ```kotlin
 dependencies {
-    implementation("ru.pravets.checkushka:checkushka-core:0.2.3")
+    implementation("ru.pravets.checkushka:checkushka-core:0.3.0")
 }
 ```
 
