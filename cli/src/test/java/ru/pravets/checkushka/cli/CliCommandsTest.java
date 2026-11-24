@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import ru.pravets.checkushka.core.check.Severity;
 import ru.pravets.checkushka.core.config.ConfigLoader;
+import ru.pravets.checkushka.core.engine.CheckRegistry;
 import ru.pravets.checkushka.core.engine.ChecksMode;
 
 class CliCommandsTest {
@@ -44,7 +45,7 @@ class CliCommandsTest {
   void listChecksPrintsAllChecks() {
     var output = run("list-checks");
 
-    assertThat(output).contains("MetadataOrder", "RoleWithoutRights");
+    assertThat(output).contains("MetadataOrder", "RoleWithoutRights", "ReportVariantNamedMain");
   }
 
   @Test
@@ -52,7 +53,7 @@ class CliCommandsTest {
     var output = run("list-checks", "--json");
 
     var node = new ObjectMapper().readTree(output);
-    assertThat(node).hasSize(2);
+    assertThat(node).hasSize(CheckRegistry.builtIn().all().size());
     assertThat(node.get(0).path("key").asText()).isNotBlank();
     assertThat(node.get(0).path("targets").isArray()).isTrue();
   }
