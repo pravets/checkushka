@@ -24,12 +24,18 @@ import com.github._1c_syntax.bsl.mdo.Report;
 import com.github._1c_syntax.bsl.mdo.storage.DataCompositionSchema;
 import com.github._1c_syntax.bsl.mdo.support.TemplateType;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.pravets.checkushka.core.check.CheckContext;
 import ru.pravets.checkushka.core.check.CheckMetadata;
 import ru.pravets.checkushka.core.check.CheckParameter;
@@ -52,6 +58,10 @@ import ru.pravets.checkushka.core.source.SourceLocation;
  * данных ({@code Reports/<Отчёт>/Templates/<Макет>/Template.dcs} в проекте EDT и
  * {@code .../Ext/Template.xml} в выгрузке конфигуратора). Список запрещённых имён задаётся
  * параметром {@code names}, сравнение — без учёта регистра.
+ *
+ * <p>Строка замечания ищется в файле макета по имени варианта, а не по его порядковому номеру:
+ * порядок вариантов в модели и в файле — неявный контракт. Если в файле нет варианта с тем же
+ * именем, замечание выводится без номера строки: лучше без координаты, чем с чужой.
  */
 @CheckMetadata(
   key = ReportVariantNamedMainCheck.KEY,
@@ -68,6 +78,8 @@ public final class ReportVariantNamedMainCheck implements MetadataCheck, Paramet
 
   /** Имена вариантов, которые считаются шаблонными по умолчанию. */
   static final List<String> DEFAULT_NAMES = List.of("Основной");
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReportVariantNamedMainCheck.class);
 
   private static final CheckMetadata META =
     ReportVariantNamedMainCheck.class.getAnnotation(CheckMetadata.class);
@@ -103,26 +115,58 @@ public final class ReportVariantNamedMainCheck implements MetadataCheck, Paramet
         continue;
       }
       var variants = schema.getSettingsVariants();
-      if (variants == null) {
+      if (variants == null || variants.isEmpty()) {
+        continue;
+      }
+
+      var violating = variants.stream()
+        .filter(Objects::nonNull)
+        .filter(variant -> variant.name() != null
+          && forbidden.contains(normalizeName(variant.name())))
+        .toList();
+      if (violating.isEmpty()) {
         continue;
       }
 
       var file = templateFile(schema, fallbackFile);
-      for (var index = 0; index < variants.size(); index++) {
-        var variant = variants.get(index);
-        if (variant == null || variant.name() == null
-          || !forbidden.contains(variant.name().trim().toLowerCase(Locale.ROOT))) {
-          continue;
-        }
+      // Один разбор файла на макет: строки сопоставляются по имени и разбираются по порядку.
+      // Если файл не прочитан, строки нет — два таких замечания в одном макете неразличимы
+      // и схлопнутся в CheckResults.distinct.
+      var lines = linesByName(file);
+      for (var variant : violating) {
         results.add(new CheckResult(
           KEY,
-          message(variant.name(), template.getName()),
+          message(variant.name().trim(), template.getName()),
           META.severity(),
-          SourceLocation.of(file, SettingsVariantLocator.nameLine(file, index), report.getMdoRef()),
+          SourceLocation.of(file, takeLine(lines, variant.name()), report.getMdoRef()),
           META.minutesToFix()));
       }
     }
     return results;
+  }
+
+  private static Map<String, Deque<Integer>> linesByName(Path file) {
+    var lines = new HashMap<String, Deque<Integer>>();
+    for (var occurrence : SettingsVariantLocator.variants(file)) {
+      if (occurrence.name() == null) {
+        continue;
+      }
+      var key = normalizeName(occurrence.name());
+      if (key.isEmpty()) {
+        continue;
+      }
+      lines.computeIfAbsent(key, name -> new ArrayDeque<>()).add(occurrence.line());
+    }
+    return lines;
+  }
+
+  private static Integer takeLine(Map<String, Deque<Integer>> lines, String name) {
+    var queue = lines.get(normalizeName(name));
+    return queue == null ? null : queue.poll();
+  }
+
+  private static String normalizeName(String name) {
+    return name.trim().toLowerCase(Locale.ROOT);
   }
 
   private static Set<String> normalize(List<String> names) {
@@ -151,6 +195,8 @@ public final class ReportVariantNamedMainCheck implements MetadataCheck, Paramet
         return Path.of(dataPath);
       } catch (RuntimeException e) {
         // путь из другого файлового провайдера — используем запасной вариант
+        LOGGER.debug("Не удалось превратить путь макета {} в файл, берём {}", dataPath,
+          fallbackFile, e);
         return fallbackFile;
       }
     }

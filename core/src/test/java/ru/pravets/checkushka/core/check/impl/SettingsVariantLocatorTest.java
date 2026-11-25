@@ -21,6 +21,7 @@
 package ru.pravets.checkushka.core.check.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,13 +31,15 @@ import org.junit.jupiter.api.io.TempDir;
 
 class SettingsVariantLocatorTest {
 
+  private static final String SCHEMA_NS = "http://v8.1c.ru/8.1/data-composition-system/schema";
+  private static final String SETTINGS_NS = "http://v8.1c.ru/8.1/data-composition-system/settings";
+
   @TempDir
   private Path dir;
 
   @Test
-  void findsNameLineOfEachVariant() throws IOException {
-    var file = write("""
-      <DataCompositionSchema>
+  void findsNameAndLineOfEachVariant() throws IOException {
+    var file = write(root() + """
         <settingsVariant>
           <dcsset:name>Детальный</dcsset:name>
           <dcsset:settings/>
@@ -48,61 +51,52 @@ class SettingsVariantLocatorTest {
       </DataCompositionSchema>
       """);
 
-    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(3);
-    assertThat(SettingsVariantLocator.nameLine(file, 1)).isEqualTo(7);
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Детальный", 3), tuple("Основной", 7));
   }
 
   @Test
-  void findsLinesInSingleLineXml() throws IOException {
-    var file = write("<DataCompositionSchema><settingsVariant><dcsset:name>Основной</dcsset:name>"
-      + "</settingsVariant></DataCompositionSchema>");
+  void findsVariantsInSingleLineXml() throws IOException {
+    var file = write(root().replace("\n", "")
+      + "<settingsVariant><dcsset:name>Основной</dcsset:name></settingsVariant>"
+      + "</DataCompositionSchema>");
 
-    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(1);
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Основной", 1));
   }
 
   @Test
   void fallsBackToVariantLineWithoutNameNode() throws IOException {
-    var file = write("""
-      <DataCompositionSchema>
+    var file = write(root() + """
         <settingsVariant>
           <dcsset:settings/>
         </settingsVariant>
       </DataCompositionSchema>
       """);
 
-    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(2);
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple(null, 2));
   }
 
   @Test
-  void returnsNullForUnknownIndex() throws IOException {
-    var file = write("""
-      <DataCompositionSchema>
-        <settingsVariant>
-          <dcsset:name>Основной</dcsset:name>
-        </settingsVariant>
-      </DataCompositionSchema>
-      """);
-
-    assertThat(SettingsVariantLocator.nameLine(file, 3)).isNull();
+  void returnsEmptyListForMissingFile() {
+    assertThat(SettingsVariantLocator.variants(dir.resolve("нет-файла.xml"))).isEmpty();
+    assertThat(SettingsVariantLocator.variants(null)).isEmpty();
   }
 
   @Test
-  void returnsNullWhenFileIsMissing() {
-    assertThat(SettingsVariantLocator.nameLine(dir.resolve("нет-файла.xml"), 0)).isNull();
-    assertThat(SettingsVariantLocator.nameLine(null, 0)).isNull();
-  }
+  void returnsEmptyListForBrokenXml() throws IOException {
+    var file = write("<DataCompositionSchema><settingsVariant>");
 
-  @Test
-  void returnsNullForNegativeIndex() throws IOException {
-    var file = write("<DataCompositionSchema/>");
-
-    assertThat(SettingsVariantLocator.nameLine(file, -1)).isNull();
+    assertThat(SettingsVariantLocator.variants(file)).isEmpty();
   }
 
   @Test
   void ignoresVariantsOfNestedSchemas() throws IOException {
-    var file = write("""
-      <DataCompositionSchema>
+    var file = write(root() + """
         <nestedSchema>
           <schema>
             <settingsVariant>
@@ -116,23 +110,73 @@ class SettingsVariantLocatorTest {
       </DataCompositionSchema>
       """);
 
-    // вариант верхнего уровня один, вложенный индекс не сдвигает
-    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(10);
-    assertThat(SettingsVariantLocator.nameLine(file, 1)).isNull();
+    // вариант верхнего уровня один, вложенный в результат не попадает
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Основной", 10));
   }
 
   @Test
-  void respectsDeclaredNamespaces() throws IOException {
+  void findsPrefixedVariantElement() throws IOException {
+    var file = write(root() + """
+        <dcsset:settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </dcsset:settingsVariant>
+      </DataCompositionSchema>
+      """);
+
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Основной", 3));
+  }
+
+  @Test
+  void ignoresVariantsOutsideDataCompositionSchema() throws IOException {
     var file = write("""
-      <DataCompositionSchema xmlns="http://v8.1c.ru/8.1/data-composition-system/schema"
-          xmlns:dcsset="http://v8.1c.ru/8.1/data-composition-system/settings">
+      <Something xmlns:dcsset="http://v8.1c.ru/8.1/data-composition-system/settings">
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+      </Something>
+      """);
+
+    assertThat(SettingsVariantLocator.variants(file)).isEmpty();
+  }
+
+  @Test
+  void keepsFileOrderOfDuplicates() throws IOException {
+    var file = write(root() + """
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
         <settingsVariant>
           <dcsset:name>Основной</dcsset:name>
         </settingsVariant>
       </DataCompositionSchema>
       """);
 
-    assertThat(SettingsVariantLocator.nameLine(file, 0)).isEqualTo(4);
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Основной", 3), tuple("Основной", 6));
+  }
+
+  @Test
+  void respectsDeclaredNamespaces() throws IOException {
+    var file = write(root() + """
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+      </DataCompositionSchema>
+      """);
+
+    assertThat(SettingsVariantLocator.variants(file))
+      .extracting(SettingsVariantLocator.Occurrence::name, SettingsVariantLocator.Occurrence::line)
+      .containsExactly(tuple("Основной", 3));
+  }
+
+  private static String root() {
+    return "<DataCompositionSchema xmlns=\"" + SCHEMA_NS + "\" xmlns:dcsset=\"" + SETTINGS_NS
+      + "\">\n";
   }
 
   private Path write(String content) throws IOException {

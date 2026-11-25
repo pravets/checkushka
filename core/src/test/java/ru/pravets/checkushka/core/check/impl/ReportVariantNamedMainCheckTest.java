@@ -39,6 +39,11 @@ import ru.pravets.checkushka.core.check.CheckResult;
 
 class ReportVariantNamedMainCheckTest {
 
+  private static final String DCS_HEADER = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <DataCompositionSchema xmlns="http://v8.1c.ru/8.1/data-composition-system/schema" xmlns:dcsset="http://v8.1c.ru/8.1/data-composition-system/settings">
+    """;
+
   @TempDir
   private Path dir;
 
@@ -72,6 +77,16 @@ class ReportVariantNamedMainCheckTest {
   }
 
   @Test
+  void printsTrimmedNameInMessage() {
+    var report = report("Отчёт", dcsTemplate("Схема", variant("  ОСНОВНОЙ  ")));
+
+    var results = analyze(report);
+
+    assertThat(results).singleElement()
+      .satisfies(result -> assertThat(result.message()).contains("\"ОСНОВНОЙ\""));
+  }
+
+  @Test
   void reportsEachVariantAndEachTemplate() {
     var report = report("Отчёт",
       dcsTemplate("Схема1", variant("Основной"), variant("Основной")),
@@ -95,9 +110,7 @@ class ReportVariantNamedMainCheckTest {
   @Test
   void picksLineOfVariantInTemplate() throws IOException {
     var template = dir.resolve("Template.xml");
-    Files.writeString(template, """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <DataCompositionSchema xmlns="http://v8.1c.ru/8.1/data-composition-system/schema">
+    Files.writeString(template, DCS_HEADER + """
         <settingsVariant>
           <dcsset:name>Детальный</dcsset:name>
         </settingsVariant>
@@ -117,6 +130,53 @@ class ReportVariantNamedMainCheckTest {
     assertThat(results).hasSize(1);
     assertThat(results.get(0).location().file()).isEqualTo(template);
     assertThat(results.get(0).location().line()).isEqualTo(7);
+  }
+
+  @Test
+  void doesNotTakeLineOfAnotherVariant() throws IOException {
+    var template = dir.resolve("Template.xml");
+    Files.writeString(template, DCS_HEADER + """
+        <settingsVariant>
+          <dcsset:name>Детальный</dcsset:name>
+        </settingsVariant>
+      </DataCompositionSchema>
+      """);
+    var schema = new DataCompositionSchema(List.of(),
+      List.of(variant("Основной")), template.toUri());
+    var report = report("Отчёт",
+      ObjectTemplate.builder().name("Схема").templateType(TemplateType.DATA_COMPOSITION_SCHEME)
+        .data(schema).build());
+
+    var results = analyze(report);
+
+    assertThat(results).singleElement().satisfies(result -> {
+      assertThat(result.location().file()).isEqualTo(template);
+      assertThat(result.location().line()).isNull();
+    });
+  }
+
+  @Test
+  void takesLinesOfDuplicateNamesInOrder() throws IOException {
+    var template = dir.resolve("Template.xml");
+    Files.writeString(template, DCS_HEADER + """
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+        <settingsVariant>
+          <dcsset:name>Основной</dcsset:name>
+        </settingsVariant>
+      </DataCompositionSchema>
+      """);
+    var schema = new DataCompositionSchema(List.of(),
+      List.of(variant("Основной"), variant("Основной")), template.toUri());
+    var report = report("Отчёт",
+      ObjectTemplate.builder().name("Схема").templateType(TemplateType.DATA_COMPOSITION_SCHEME)
+        .data(schema).build());
+
+    var results = analyze(report);
+
+    assertThat(results).extracting(result -> result.location().line())
+      .containsExactly(4, 7);
   }
 
   @Test
