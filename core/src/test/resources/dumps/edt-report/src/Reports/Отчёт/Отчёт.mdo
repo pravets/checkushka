@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Report xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="00000000-0000-0000-0000-000000000012">
+  <name>Отчёт</name>
+  <templates uuid="00000000-0000-0000-0000-000000000013">
+    <name>Схема</name>
+    <templateType>DataCompositionSchema</templateType>
+  </templates>
+</mdclass:Report>

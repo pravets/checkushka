@@ -16,7 +16,7 @@
 
 ## Статус
 
-Проект в разработке, версия 0.2.3: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
+Проект в разработке, версия 0.3.0: ядро проверок, CLI и MCP-сервер (stdio и streamable HTTP).
 Артефакт `ru.pravets.checkushka:checkushka-core` публикуется в Maven Central; следующие этапы —
 параллельный обход объектов (M5) и LSP-адаптер, см. [docs/roadmap.md](docs/roadmap.md).
 
@@ -60,7 +60,7 @@ java -jar checkushka-<версия>-exec.jar mcp
 
 ```kotlin
 dependencies {
-    implementation("ru.pravets.checkushka:checkushka-core:0.2.3")
+    implementation("ru.pravets.checkushka:checkushka-core:0.3.0")
 }
 ```
 
@@ -135,6 +135,7 @@ checkushka check путь --fail-on CRITICAL
 | --- | --- |
 | `MetadataOrder` | порядок объектов в `ChildObjects` конфигурации; режимы префиксов `none`, `stripPrefix`, `groupByPrefix`; по умолчанию одно замечание на тип метаданных, `detail: object` — на каждый объект |
 | `RoleWithoutRights` | роль, у которой не установлено ни одного права |
+| `ReportVariantNamedMain` | вариант отчёта с макетом СКД назван шаблонно (`Основной`); список имён — параметр `names`, см. [docs/checks/ReportVariantNamedMain.md](docs/checks/ReportVariantNamedMain.md) |
 
 Ключи проверок в `--checks` и `checks.keys` сверяются с реестром: неизвестный ключ
 (опечатка или удалённая проверка) — ошибка с кодом возврата 2 и списком доступных проверок.

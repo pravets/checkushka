@@ -29,6 +29,7 @@ import java.util.Optional;
 import ru.pravets.checkushka.core.check.CheckMetadata;
 import ru.pravets.checkushka.core.check.MetadataCheck;
 import ru.pravets.checkushka.core.check.impl.MetadataOrderCheck;
+import ru.pravets.checkushka.core.check.impl.ReportVariantNamedMainCheck;
 import ru.pravets.checkushka.core.check.impl.RoleWithoutRightsCheck;
 
 /**
@@ -66,7 +67,8 @@ public final class CheckRegistry {
   public static CheckRegistry builtIn() {
     return new CheckRegistry(List.of(
       new MetadataOrderCheck(),
-      new RoleWithoutRightsCheck()));
+      new RoleWithoutRightsCheck(),
+      new ReportVariantNamedMainCheck()));
   }
 
   /**
