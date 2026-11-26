@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Configuration xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="00000000-0000-0000-0000-000000000201">
+  <name>Тест</name>
+  <catalogs>Catalog.Товары</catalogs>
+  <documents>Document.Заказ</documents>
+  <documents>Document.Акт</documents>
+  <documents>Document.Счёт</documents>
+</mdclass:Configuration>
