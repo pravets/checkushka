@@ -127,6 +127,18 @@ public final class Project {
   }
 
   /**
+   * Сама конфигурация, без расширений.
+   *
+   * <p>Слитая конфигурация подмешивает объекты расширений, поэтому проверкам, которые
+   * относятся именно к конфигурации, нужен этот список.
+   *
+   * @return конфигурация или {@link Configuration#EMPTY}, если модель не разобрана
+   */
+  public Configuration baseConfiguration() {
+    return solution == null ? Configuration.EMPTY : solution.getBaseConfiguration();
+  }
+
+  /**
    * Индекс файлов проекта.
    *
    * @return индекс
