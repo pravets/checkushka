@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses" xmlns:v8="http://v8.1c.ru/8.1/data/core" version="2.20">
+	<Catalog uuid="00000000-0000-0000-0000-000000000202">
+		<Properties>
+			<Name>Ёлка</Name>
+			<Synonym>
+				<v8:item>
+					<v8:lang>en</v8:lang>
+					<v8:content>Gift Ё</v8:content>
+				</v8:item>
+			</Synonym>
+			<Comment>комментарий с ё</Comment>
+		</Properties>
+	</Catalog>
+</MetaDataObject>

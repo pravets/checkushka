@@ -42,7 +42,8 @@ class ConfigLoaderTest {
         "keys": ["MetadataOrder"],
         "minSeverity": "MAJOR",
         "parameters": {
-          "MetadataOrder": { "mode": "groupByPrefix", "prefixes": ["об_", "мс_"] }
+          "MetadataOrder": { "mode": "groupByPrefix", "prefixes": ["об_", "мс_"] },
+          "YoLetterInMetadata": { "letters": ["ё", "Ё"], "properties": ["name", "comment"] }
         },
         "severity": { "MetadataOrder": "CRITICAL" }
       },
@@ -89,6 +90,12 @@ class ConfigLoaderTest {
       .isEqualTo("groupByPrefix");
     assertThat(config.checks().parametersFor("MetadataOrder").stringList("prefixes", java.util.List.of()))
       .containsExactly("об_", "мс_");
+    assertThat(config.checks().parametersFor("YoLetterInMetadata")
+      .stringList("letters", java.util.List.of()))
+      .containsExactly("ё", "Ё");
+    assertThat(config.checks().parametersFor("YoLetterInMetadata")
+      .stringList("properties", java.util.List.of()))
+      .containsExactly("name", "comment");
   }
 
   @Test
