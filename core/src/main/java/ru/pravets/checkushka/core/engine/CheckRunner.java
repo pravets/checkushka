@@ -32,6 +32,7 @@ import ru.pravets.checkushka.core.check.CheckContext;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.CheckTarget;
 import ru.pravets.checkushka.core.check.MetadataCheck;
+import ru.pravets.checkushka.core.check.ParameterizedCheck;
 import ru.pravets.checkushka.core.source.Project;
 
 /**
@@ -73,6 +74,7 @@ public final class CheckRunner {
   public AnalysisResult run(Project project) {
     var started = Instant.now();
     var activeChecks = activeChecks();
+    warnInvalidParameters(activeChecks);
     var found = new ArrayList<CheckResult>();
     var units = 0;
 
@@ -101,6 +103,25 @@ public final class CheckRunner {
       .filter(check -> settings.isEnabled(CheckRegistry.metadataOf(check).key(),
         CheckRegistry.metadataOf(check).activatedByDefault()))
       .toList();
+  }
+
+  /**
+   * Сообщает о некорректных параметрах один раз за запуск.
+   *
+   * <p>Предупреждение не прерывает анализ: проверка продолжает работать с теми значениями,
+   * которые удалось разобрать. Без этого опечатка вроде {@code rights: ["Adminstration"]}
+   * молча выключала бы правило.
+   */
+  private void warnInvalidParameters(List<MetadataCheck> checks) {
+    for (var check : checks) {
+      if (!(check instanceof ParameterizedCheck parameterized)) {
+        continue;
+      }
+      var key = keyOf(check);
+      for (var message : parameterized.validateParameters(settings.parametersFor(key))) {
+        LOGGER.warn("Проверка {}: {}", key, message);
+      }
+    }
   }
 
   private static boolean appliesTo(MetadataCheck check, CheckTarget target) {
