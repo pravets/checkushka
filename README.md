@@ -137,6 +137,7 @@ checkushka check путь --fail-on CRITICAL
 | `RoleWithoutRights` | роль, у которой не установлено ни одного права |
 | `ReportVariantNamedMain` | вариант отчёта с макетом СКД назван шаблонно (`Основной`); список имён — параметр `names`, см. [docs/checks/ReportVariantNamedMain.md](docs/checks/ReportVariantNamedMain.md) |
 | `RequiredRoles` | обязательные роли конфигурации (`ПолныеПрава`, `АдминистраторСистемы`, `ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок`); список — параметр `roles`, см. [docs/checks/RequiredRoles.md](docs/checks/RequiredRoles.md) |
+| `SubsystemMembership` | объект верхнего уровня не входит ни в одну подсистему, включая вложенные; список исключаемых типов — параметр `excludeTypes`, см. [docs/checks/SubsystemMembership.md](docs/checks/SubsystemMembership.md) |
 
 Ключи проверок в `--checks` и `checks.keys` сверяются с реестром: неизвестный ключ
 (опечатка или удалённая проверка) — ошибка с кодом возврата 2 и списком доступных проверок.
