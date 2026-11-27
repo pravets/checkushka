@@ -46,7 +46,7 @@ class CliCommandsTest {
     var output = run("list-checks");
 
     assertThat(output).contains("MetadataOrder", "RoleWithoutRights", "ReportVariantNamedMain",
-      "RequiredRoles");
+      "RequiredRoles", "SubsystemMembership");
   }
 
   @Test
@@ -67,6 +67,16 @@ class CliCommandsTest {
       .contains("MetadataOrder")
       .contains("groupByPrefix")
       .contains("prefixes");
+  }
+
+  @Test
+  void describeCheckShowsSubsystemMembershipParameters() {
+    var output = run("describe-check", "SubsystemMembership");
+
+    assertThat(output)
+      .contains("SubsystemMembership")
+      .contains("excludeTypes")
+      .contains("Subsystem");
   }
 
   @Test
