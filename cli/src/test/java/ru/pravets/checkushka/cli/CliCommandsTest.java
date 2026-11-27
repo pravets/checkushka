@@ -46,9 +46,9 @@ class CliCommandsTest {
     var output = run("list-checks");
 
     assertThat(output)
-      .contains("MetadataOrder", "RoleWithoutRights", "ReportVariantNamedMain",
-        "RequiredRoles", "SubsystemMembership", "DocumentCommentAttribute",
-        "YoLetterInMetadata");
+      .contains("MetadataOrder", "RoleWithoutRights", "RoleForbiddenRight",
+        "ReportVariantNamedMain", "RequiredRoles", "SubsystemMembership",
+        "DocumentCommentAttribute", "YoLetterInMetadata");
   }
 
   @Test
@@ -69,6 +69,17 @@ class CliCommandsTest {
       .contains("MetadataOrder")
       .contains("groupByPrefix")
       .contains("prefixes");
+  }
+
+  @Test
+  void describeCheckShowsRoleForbiddenRightParameters() {
+    var output = run("describe-check", "RoleForbiddenRight");
+
+    assertThat(output)
+      .contains("RoleForbiddenRight")
+      .contains("rights")
+      .contains("excludeRoles")
+      .contains("ПолныеПрава");
   }
 
   @Test

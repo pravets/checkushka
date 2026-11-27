@@ -135,6 +135,7 @@ checkushka check путь --fail-on CRITICAL
 | --- | --- |
 | `MetadataOrder` | порядок объектов в `ChildObjects` конфигурации; режимы префиксов `none`, `stripPrefix`, `groupByPrefix`; по умолчанию одно замечание на тип метаданных, `detail: object` — на каждый объект |
 | `RoleWithoutRights` | роль, у которой не установлено ни одного права |
+| `RoleForbiddenRight` | в роли вне списка исключений установлено запрещённое право; список прав — параметр `rights`, исключённые роли — `excludeRoles`, см. [docs/checks/RoleForbiddenRight.md](docs/checks/RoleForbiddenRight.md) |
 | `ReportVariantNamedMain` | вариант отчёта с макетом СКД назван шаблонно (`Основной`); список имён — параметр `names`, см. [docs/checks/ReportVariantNamedMain.md](docs/checks/ReportVariantNamedMain.md) |
 | `RequiredRoles` | обязательные роли конфигурации (`ПолныеПрава`, `АдминистраторСистемы`, `ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок`); список — параметр `roles`, см. [docs/checks/RequiredRoles.md](docs/checks/RequiredRoles.md) |
 | `SubsystemMembership` | объект верхнего уровня не входит ни в одну подсистему, включая вложенные; список исключаемых типов — параметр `excludeTypes`, см. [docs/checks/SubsystemMembership.md](docs/checks/SubsystemMembership.md) |
