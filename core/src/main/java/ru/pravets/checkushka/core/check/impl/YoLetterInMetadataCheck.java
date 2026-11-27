@@ -177,7 +177,7 @@ public final class YoLetterInMetadataCheck implements MetadataCheck, Parameteriz
       if (letter == null) {
         continue;
       }
-      var value = letter.trim();
+      var value = letter;
       if (!caseSensitive) {
         value = value.toLowerCase(Locale.ROOT);
       }

@@ -259,6 +259,30 @@ class YoLetterInMetadataCheckTest {
   }
 
   @Test
+  void keepsWhitespaceInLetters() {
+    var catalog = Catalog.builder()
+      .name("Подарки")
+      .mdoReference(ref("Catalog.Подарки"))
+      .synonym(MultiLanguageString.create("ru", "Новогодняя ёлка"))
+      .build();
+
+    // Пробелы — часть буквальной подстроки, а не мусор вокруг неё.
+    assertThat(analyze(catalog, List.of(" ё "), YoLetterInMetadataCheck.DEFAULT_PROPERTIES))
+      .isEmpty();
+
+    assertThat(analyze(catalog, List.of(" ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES))
+      .singleElement().satisfies(issue ->
+        assertThat(issue.message())
+          .isEqualTo("Синоним (ru) объекта \"Подарки\" содержит букву \" ё\""));
+
+    // Строка из пробелов значима и не отключает проверку.
+    assertThat(analyze(catalog, List.of(" "), YoLetterInMetadataCheck.DEFAULT_PROPERTIES))
+      .singleElement().satisfies(issue ->
+        assertThat(issue.message())
+          .isEqualTo("Синоним (ru) объекта \"Подарки\" содержит букву \" \""));
+  }
+
+  @Test
   void emptyLettersOrPropertiesProduceNothing() {
     var catalog = catalog("Ёлка");
 
