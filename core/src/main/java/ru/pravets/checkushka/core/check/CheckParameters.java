@@ -22,6 +22,7 @@ package ru.pravets.checkushka.core.check;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -112,5 +113,25 @@ public final class CheckParameters {
       return defaultValue;
     }
     return list.stream().filter(String.class::isInstance).map(String.class::cast).toList();
+  }
+
+  /**
+   * Список строк без пустых элементов.
+   *
+   * <p>Значения обрезаются по краям, {@code null} и пустые строки отбрасываются: так
+   * параметры-списки из конфигурации готовы к сравнению без дополнительной подготовки.
+   *
+   * @param values исходный список, может быть {@code null}
+   * @return обрезанные непустые значения; пустой список, если значений нет
+   */
+  public static List<String> normalized(List<String> values) {
+    if (values == null) {
+      return List.of();
+    }
+    return values.stream()
+      .filter(Objects::nonNull)
+      .map(String::trim)
+      .filter(value -> !value.isEmpty())
+      .toList();
   }
 }

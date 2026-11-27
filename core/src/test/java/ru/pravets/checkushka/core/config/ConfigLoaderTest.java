@@ -110,6 +110,25 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void readsSubsystemMembershipExcludeTypes() throws IOException {
+    Files.writeString(projectDir.resolve("checkushka.json"), """
+      {
+        "checks": {
+          "parameters": {
+            "SubsystemMembership": { "excludeTypes": ["Subsystem", "CommonModule"] }
+          }
+        }
+      }
+      """);
+
+    var settings = new ConfigLoader().load(projectDir, null).checks();
+
+    assertThat(settings.parametersFor("SubsystemMembership")
+      .stringList("excludeTypes", java.util.List.of()))
+      .containsExactly("Subsystem", "CommonModule");
+  }
+
+  @Test
   void enabledChecksFollowMode() {
     var only = new ConfigLoaderTestSupport();
 

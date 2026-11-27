@@ -32,6 +32,7 @@ import ru.pravets.checkushka.core.check.impl.MetadataOrderCheck;
 import ru.pravets.checkushka.core.check.impl.ReportVariantNamedMainCheck;
 import ru.pravets.checkushka.core.check.impl.RequiredRolesCheck;
 import ru.pravets.checkushka.core.check.impl.RoleWithoutRightsCheck;
+import ru.pravets.checkushka.core.check.impl.SubsystemMembershipCheck;
 import ru.pravets.checkushka.core.check.impl.YoLetterInMetadataCheck;
 
 /**
@@ -72,6 +73,7 @@ public final class CheckRegistry {
       new RoleWithoutRightsCheck(),
       new ReportVariantNamedMainCheck(),
       new RequiredRolesCheck(),
+      new SubsystemMembershipCheck(),
       new YoLetterInMetadataCheck()));
   }
 

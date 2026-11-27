@@ -25,17 +25,21 @@ import com.github._1c_syntax.bsl.mdo.FormOwner;
 import com.github._1c_syntax.bsl.mdo.MD;
 import com.github._1c_syntax.bsl.mdo.MDChild;
 import com.github._1c_syntax.bsl.mdo.Role;
+import com.github._1c_syntax.bsl.mdo.Subsystem;
 import com.github._1c_syntax.bsl.mdclasses.Configuration;
 import com.github._1c_syntax.bsl.mdclasses.Solution;
+import com.github._1c_syntax.bsl.types.MdoReference;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -56,6 +60,9 @@ public final class Project {
 
   private final List<Form> forms;
   private final Map<Form, String> formOwners;
+
+  private final Set<MdoReference> topLevelRefs;
+  private final Set<MdoReference> subsystemMembers;
 
   /**
    * Создаёт описание проекта.
@@ -79,6 +86,8 @@ public final class Project {
     var owners = new IdentityHashMap<Form, String>();
     this.forms = solution == null ? List.of() : collectForms(owners);
     this.formOwners = owners;
+    this.topLevelRefs = solution == null ? Set.of() : collectTopLevelRefs();
+    this.subsystemMembers = solution == null ? Set.of() : collectSubsystemMembers();
   }
 
   /**
@@ -136,6 +145,44 @@ public final class Project {
    */
   public Configuration baseConfiguration() {
     return solution == null ? Configuration.EMPTY : solution.getBaseConfiguration();
+  }
+
+  /**
+   * Проверяет, что объект входит в число объектов конфигурации верхнего уровня.
+   *
+   * <p>Потомки объектов (реквизиты, формы, команды, макеты) верхним уровнем не считаются:
+   * подсистемы ссылаются на объект-владелец, а не на его части.
+   *
+   * @param mdo объект метаданных
+   * @return {@code true}, если объект объявлен в {@code ChildObjects} конфигурации
+   */
+  public boolean isTopLevel(MD mdo) {
+    return contains(topLevelRefs, mdo);
+  }
+
+  /**
+   * Проверяет, входит ли объект в состав хотя бы одной подсистемы, включая вложенные.
+   *
+   * <p>Индекс строится один раз при разборе проекта: обход дерева подсистем на каждый объект
+   * сделал бы проверку принадлежности квадратичной.
+   *
+   * @param mdo объект метаданных
+   * @return {@code true}, если ссылка на объект есть в составе подсистемы
+   */
+  public boolean isInSubsystem(MD mdo) {
+    return contains(subsystemMembers, mdo);
+  }
+
+  private static boolean contains(Set<MdoReference> refs, MD mdo) {
+    if (mdo == null) {
+      return false;
+    }
+    var ref = mdo.getMdoReference();
+    return isUsableRef(ref) && refs.contains(ref);
+  }
+
+  private static boolean isUsableRef(MdoReference ref) {
+    return ref != null && !ref.isEmpty();
   }
 
   /**
@@ -230,6 +277,44 @@ public final class Project {
    */
   public List<Role> roles() {
     return solution == null ? List.of() : configuration().getRoles();
+  }
+
+  private Set<MdoReference> collectTopLevelRefs() {
+    var refs = new HashSet<MdoReference>();
+    for (var object : configuration().getChildren()) {
+      if (object == null) {
+        continue;
+      }
+      var ref = object.getMdoReference();
+      if (isUsableRef(ref)) {
+        refs.add(ref);
+      }
+    }
+    return Set.copyOf(refs);
+  }
+
+  private Set<MdoReference> collectSubsystemMembers() {
+    var refs = new HashSet<MdoReference>();
+    for (var subsystem : configuration().getSubsystems()) {
+      collectSubsystemMembers(subsystem, refs);
+    }
+    return Set.copyOf(refs);
+  }
+
+  private static void collectSubsystemMembers(Subsystem subsystem, Set<MdoReference> sink) {
+    if (subsystem == null) {
+      return;
+    }
+    var content = subsystem.getContent();
+    if (content != null) {
+      content.stream().filter(Objects::nonNull).forEach(sink::add);
+    }
+    var nested = subsystem.getSubsystems();
+    if (nested != null) {
+      for (var child : nested) {
+        collectSubsystemMembers(child, sink);
+      }
+    }
   }
 
   private List<Form> collectForms(Map<Form, String> owners) {
