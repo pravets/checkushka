@@ -46,7 +46,7 @@ class CliCommandsTest {
     var output = run("list-checks");
 
     assertThat(output).contains("MetadataOrder", "RoleWithoutRights", "ReportVariantNamedMain",
-      "YoLetterInMetadata");
+      "RequiredRoles", "YoLetterInMetadata");
   }
 
   @Test
