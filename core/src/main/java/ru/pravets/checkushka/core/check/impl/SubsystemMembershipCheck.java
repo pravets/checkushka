@@ -20,11 +20,9 @@
  */
 package ru.pravets.checkushka.core.check.impl;
 
-import com.github._1c_syntax.bsl.mdo.MD;
 import com.github._1c_syntax.bsl.mdo.support.ObjectBelonging;
 import com.github._1c_syntax.bsl.types.MDOType;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -130,10 +128,8 @@ public final class SubsystemMembershipCheck implements MetadataCheck, Parameteri
    * @return типы, которые не проверяются
    */
   static Set<MDOType> excludedTypes(CheckParameters parameters) {
-    return parameters.stringList("excludeTypes", DEFAULT_EXCLUDE_TYPE_NAMES).stream()
-      .filter(Objects::nonNull)
-      .map(String::trim)
-      .filter(name -> !name.isEmpty())
+    var names = parameters.stringList("excludeTypes", DEFAULT_EXCLUDE_TYPE_NAMES);
+    return CheckParameters.normalized(names).stream()
       .map(MDOType::fromValue)
       .flatMap(Optional::stream)
       .collect(Collectors.toUnmodifiableSet());

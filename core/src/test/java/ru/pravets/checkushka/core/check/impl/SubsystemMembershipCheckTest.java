@@ -191,29 +191,25 @@ class SubsystemMembershipCheckTest {
   @ParameterizedTest
   @ValueSource(strings = {"designer-report", "edt-report"})
   void findsObjectOutsideSubsystemsInDump(String dump) throws URISyntaxException {
-    var project = new ProjectLoader().load(dump(dump));
-    var issues = new CheckRunner(CheckRegistry.builtIn(), CheckSettings.defaults()).run(project)
-      .issues().stream()
-      .filter(issue -> SubsystemMembershipCheck.KEY.equals(issue.key()))
-      .toList();
-
-    assertThat(issues).singleElement()
+    assertThat(issuesInDump(dump)).singleElement()
       .satisfies(issue -> assertThat(issue.location().mdoRef()).isEqualTo("Report.Отчёт"));
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"subsystem-membership-designer", "subsystem-membership-edt"})
   void reportsOnlyObjectOutsideSubsystemsInDump(String dump) throws URISyntaxException {
-    var project = new ProjectLoader().load(dump(dump));
-    var issues = new CheckRunner(CheckRegistry.builtIn(), CheckSettings.defaults()).run(project)
-      .issues().stream()
-      .filter(issue -> SubsystemMembershipCheck.KEY.equals(issue.key()))
-      .toList();
-
-    assertThat(issues).singleElement().satisfies(issue -> {
+    assertThat(issuesInDump(dump)).singleElement().satisfies(issue -> {
       assertThat(issue.location().mdoRef()).isEqualTo("Catalog.ВнеПодсистем");
       assertThat(issue.message()).contains("Catalog.ВнеПодсистем");
     });
+  }
+
+  private static List<CheckResult> issuesInDump(String dump) throws URISyntaxException {
+    var project = new ProjectLoader().load(dump(dump));
+    return new CheckRunner(CheckRegistry.builtIn(), CheckSettings.defaults()).run(project)
+      .issues().stream()
+      .filter(issue -> SubsystemMembershipCheck.KEY.equals(issue.key()))
+      .toList();
   }
 
   private List<CheckResult> check(Project project, MD mdo, CheckParameters parameters) {

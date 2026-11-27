@@ -178,7 +178,11 @@ public final class Project {
       return false;
     }
     var ref = mdo.getMdoReference();
-    return ref != null && !ref.isEmpty() && refs.contains(ref);
+    return isUsableRef(ref) && refs.contains(ref);
+  }
+
+  private static boolean isUsableRef(MdoReference ref) {
+    return ref != null && !ref.isEmpty();
   }
 
   /**
@@ -282,7 +286,7 @@ public final class Project {
         continue;
       }
       var ref = object.getMdoReference();
-      if (ref != null && !ref.isEmpty()) {
+      if (isUsableRef(ref)) {
         refs.add(ref);
       }
     }
