@@ -96,6 +96,24 @@ class DocumentCommentAttributeProjectTest {
         assertThat(issue.location().mdoRef()).isEqualTo("Document.Счёт"));
   }
 
+  @Test
+  void parametersFromCheckushkaJsonWithEmptyNamesDisableCheck() throws Exception {
+    var configFile = dir.resolve("checkushka.json");
+    Files.writeString(configFile, """
+      {
+        "checks": {
+          "parameters": {
+            "DocumentCommentAttribute": { "names": [] }
+          }
+        }
+      }
+      """);
+    var root = dump("designer-document");
+    var settings = new ConfigLoader().load(root, configFile).checks();
+
+    assertThat(issues(root, settings)).isEmpty();
+  }
+
   private static List<CheckResult> issues(Path root, CheckSettings settings) {
     var project = new ProjectLoader().load(root);
     return new CheckRunner(CheckRegistry.builtIn(), settings).run(project).issues().stream()

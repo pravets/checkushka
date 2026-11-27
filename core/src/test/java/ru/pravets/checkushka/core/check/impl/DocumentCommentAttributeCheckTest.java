@@ -33,11 +33,14 @@ import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import ru.pravets.checkushka.core.check.CheckContext;
+import ru.pravets.checkushka.core.check.CheckParameters;
 import ru.pravets.checkushka.core.check.CheckResult;
+import ru.pravets.checkushka.core.source.Project;
+import ru.pravets.checkushka.core.source.ProjectLayout;
+import ru.pravets.checkushka.core.source.SourceFormat;
 
 class DocumentCommentAttributeCheckTest {
-
-  private static final String QUOTE = Character.toString('"');
 
   private static final String FULL_REQUIREMENT =
     "должен быть строкой неограниченной длины с включённым многострочным режимом";
@@ -52,7 +55,7 @@ class DocumentCommentAttributeCheckTest {
     assertThat(results).singleElement().satisfies(result -> {
       assertThat(result.key()).isEqualTo(DocumentCommentAttributeCheck.KEY);
       assertThat(result.message()).isEqualTo(
-        "У документа " + QUOTE + "Заказ" + QUOTE + " нет реквизита " + QUOTE + "Комментарий" + QUOTE);
+        "У документа \"Заказ\" нет реквизита \"Комментарий\"");
       assertThat(result.location().file()).isEqualTo(dir.resolve("Configuration.xml"));
       assertThat(result.location().line()).isNull();
       assertThat(result.location().mdoRef()).isEqualTo("Document.Заказ");
@@ -90,8 +93,7 @@ class DocumentCommentAttributeCheckTest {
 
     assertThat(analyze(document)).singleElement().satisfies(result ->
       assertThat(result.message()).isEqualTo(
-        "Реквизит " + QUOTE + "Комментарий" + QUOTE + " документа " + QUOTE + "Акт"
-          + QUOTE + " " + FULL_REQUIREMENT));
+        "Реквизит \"Комментарий\" документа \"Акт\" " + FULL_REQUIREMENT));
   }
 
   @Test
@@ -101,8 +103,7 @@ class DocumentCommentAttributeCheckTest {
 
     assertThat(analyze(document)).singleElement().satisfies(result ->
       assertThat(result.message()).isEqualTo(
-        "Реквизит " + QUOTE + "Комментарий" + QUOTE + " документа " + QUOTE + "Акт"
-          + QUOTE + " " + FULL_REQUIREMENT));
+        "Реквизит \"Комментарий\" документа \"Акт\" " + FULL_REQUIREMENT));
   }
 
   @Test
@@ -125,6 +126,24 @@ class DocumentCommentAttributeCheckTest {
   }
 
   @Test
+  void acceptsStringWithoutQualifiersAsUnlimited() {
+    var document = document("Заказ",
+      attribute("Комментарий", ValueTypeDescription.create(PrimitiveValueType.STRING), true));
+
+    assertThat(analyze(document)).isEmpty();
+  }
+
+  @Test
+  void fallsBackToProjectRootWhenDocumentFileIsMissing() {
+    var project = new Project(dir, dir.resolve("Configuration.xml"), SourceFormat.DESIGNER,
+      null, ProjectLayout.scan(dir), null);
+    var context = CheckContext.ofMdo(project, document("Заказ"), CheckParameters.empty());
+
+    assertThat(new DocumentCommentAttributeCheck().check(context)).singleElement().satisfies(result ->
+      assertThat(result.location().file()).isEqualTo(dir));
+  }
+
+  @Test
   void acceptsOneValidCandidateAmongSeveral() {
     var document = document("Заказ",
       attribute("Комментарий", ValueTypeDescription.createString(50), true),
@@ -140,7 +159,7 @@ class DocumentCommentAttributeCheckTest {
       attribute("Comment", ValueTypeDescription.createString(50), true));
 
     assertThat(analyze(document)).singleElement().satisfies(result ->
-      assertThat(result.message()).startsWith("Реквизит " + QUOTE + "Комментарий" + QUOTE));
+      assertThat(result.message()).startsWith("Реквизит \"Комментарий\""));
   }
 
   @Test
@@ -158,7 +177,7 @@ class DocumentCommentAttributeCheckTest {
     assertThat(analyze(valid, List.of("Описание"), true, true)).isEmpty();
     assertThat(analyze(document("Заказ"), List.of("Описание"), true, true))
       .singleElement().satisfies(result ->
-        assertThat(result.message()).contains(QUOTE + "Описание" + QUOTE));
+        assertThat(result.message()).contains("\"Описание\""));
   }
 
   @Test
@@ -196,8 +215,7 @@ class DocumentCommentAttributeCheckTest {
     assertThat(analyze(document, DocumentCommentAttributeCheck.DEFAULT_NAMES, false, false))
       .singleElement().satisfies(result ->
         assertThat(result.message()).isEqualTo(
-          "Реквизит " + QUOTE + "Комментарий" + QUOTE + " документа " + QUOTE + "Заказ"
-            + QUOTE + " должен быть строкой"));
+          "Реквизит \"Комментарий\" документа \"Заказ\" должен быть строкой"));
   }
 
   @Test
@@ -209,7 +227,7 @@ class DocumentCommentAttributeCheckTest {
     assertThat(parameters).extracting(parameter -> parameter.type())
       .containsExactly("string[]", "boolean", "boolean");
     assertThat(parameters).extracting(parameter -> parameter.defaultValue())
-      .containsExactly("[" + QUOTE + "Комментарий" + QUOTE + ", " + QUOTE + "Comment" + QUOTE + "]",
+      .containsExactly("[\"Комментарий\", \"Comment\"]",
         "true", "true");
   }
 
