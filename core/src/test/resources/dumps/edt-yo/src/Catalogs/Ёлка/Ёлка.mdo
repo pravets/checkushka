@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Catalog xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="00000000-0000-0000-0000-000000000102">
+  <name>Ёлка</name>
+  <synonym>
+    <key>en</key>
+    <value>Gift Ё</value>
+  </synonym>
+  <comment>комментарий с ё</comment>
+  <attributes uuid="00000000-0000-0000-0000-000000000103">
+    <name>СтавкаЁ</name>
+  </attributes>
+  <tabularSections uuid="00000000-0000-0000-0000-000000000104">
+    <name>Товары</name>
+    <attributes uuid="00000000-0000-0000-0000-000000000105">
+      <name>Цена</name>
+      <synonym>
+        <key>ru</key>
+        <value>Цена ё</value>
+      </synonym>
+    </attributes>
+  </tabularSections>
+  <commands uuid="00000000-0000-0000-0000-000000000106">
+    <name>СоздатьЁ</name>
+  </commands>
+  <templates uuid="00000000-0000-0000-0000-000000000107">
+    <name>МакетЁ</name>
+  </templates>
+</mdclass:Catalog>

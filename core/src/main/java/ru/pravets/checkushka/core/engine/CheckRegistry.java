@@ -34,6 +34,7 @@ import ru.pravets.checkushka.core.check.impl.ReportVariantNamedMainCheck;
 import ru.pravets.checkushka.core.check.impl.RequiredRolesCheck;
 import ru.pravets.checkushka.core.check.impl.RoleWithoutRightsCheck;
 import ru.pravets.checkushka.core.check.impl.SubsystemMembershipCheck;
+import ru.pravets.checkushka.core.check.impl.YoLetterInMetadataCheck;
 
 /**
  * Набор доступных проверок.
@@ -74,7 +75,8 @@ public final class CheckRegistry {
       new ReportVariantNamedMainCheck(),
       new RequiredRolesCheck(),
       new SubsystemMembershipCheck(),
-      new DocumentCommentAttributeCheck()));
+      new DocumentCommentAttributeCheck(),
+      new YoLetterInMetadataCheck()));
   }
 
   /**

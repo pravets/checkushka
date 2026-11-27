@@ -47,7 +47,8 @@ class CliCommandsTest {
 
     assertThat(output)
       .contains("MetadataOrder", "RoleWithoutRights", "ReportVariantNamedMain",
-        "RequiredRoles", "SubsystemMembership", "DocumentCommentAttribute");
+        "RequiredRoles", "SubsystemMembership", "DocumentCommentAttribute",
+        "YoLetterInMetadata");
   }
 
   @Test
