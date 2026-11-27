@@ -132,7 +132,7 @@ public final class RequiredRolesCheck implements MetadataCheck, ParameterizedChe
         KEY,
         "В конфигурации отсутствует обязательная роль \"" + requirement.getValue() + "\"",
         META.severity(),
-        SourceLocation.of(configurationFile, null, null),
+        SourceLocation.of(configurationFile),
         META.minutesToFix()));
     }
     return results;
