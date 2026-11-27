@@ -184,6 +184,25 @@ class RoleForbiddenRightCheckTest {
     assertThat(messages).isEmpty();
   }
 
+  @Test
+  void unknownConstantIsNeitherResolvedNorAccepted() {
+    assertThat(RoleForbiddenRightCheck.resolve(List.of("UNKNOWN"))).isEmpty();
+
+    var messages = new RoleForbiddenRightCheck().validateParameters(new CheckParameters(Map.of(
+      "rights", List.of("UNKNOWN"))));
+
+    assertThat(messages).singleElement().satisfies(message ->
+      assertThat(message).contains("UNKNOWN"));
+  }
+
+  @Test
+  void unknownRightInModelIsNotReported() {
+    var role = role("Оператор", data(objectRight("Catalog.Товары",
+      right(RoleRight.UNKNOWN, true))));
+
+    assertThat(analyze(role, List.of("UNKNOWN"), List.of())).isEmpty();
+  }
+
   private static List<CheckResult> analyze(Role role, List<String> rights, List<String> excluded) {
     return RoleForbiddenRightCheck.analyze(role, rights, excluded, ROLE_FILE);
   }

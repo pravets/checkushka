@@ -107,9 +107,9 @@ public final class RoleForbiddenRightCheck implements MetadataCheck, Parameteriz
     "АдминистраторСистемы",
     "SystemAdministrator");
 
-  private static final String DEFAULT_RIGHTS_TEXT = jsonText(DEFAULT_RIGHTS);
+  private static final String DEFAULT_RIGHTS_TEXT = jsonArrayText(DEFAULT_RIGHTS);
 
-  private static final String DEFAULT_EXCLUDE_ROLES_TEXT = jsonText(DEFAULT_EXCLUDE_ROLES);
+  private static final String DEFAULT_EXCLUDE_ROLES_TEXT = jsonArrayText(DEFAULT_EXCLUDE_ROLES);
 
   private static final CheckMetadata META =
     RoleForbiddenRightCheck.class.getAnnotation(CheckMetadata.class);
@@ -180,6 +180,9 @@ public final class RoleForbiddenRightCheck implements MetadataCheck, Parameteriz
   /**
    * Разрешает значения параметра в права модели.
    *
+   * <p>Константа {@link RoleRight#UNKNOWN} правом не считается: её же возвращает поиск по
+   * названию для нераспознанных значений, поэтому в результат она не попадает.
+   *
    * @param names значения из конфигурации
    * @return распознанные права в порядке первого упоминания
    */
@@ -203,7 +206,8 @@ public final class RoleForbiddenRightCheck implements MetadataCheck, Parameteriz
       return null;
     }
     try {
-      return RoleRight.valueOf(text.toUpperCase(Locale.ROOT));
+      var constant = RoleRight.valueOf(text.toUpperCase(Locale.ROOT));
+      return constant == RoleRight.UNKNOWN ? null : constant;
     } catch (IllegalArgumentException ignored) {
       // не имя константы — пробуем английское или русское название права
     }
@@ -248,7 +252,7 @@ public final class RoleForbiddenRightCheck implements MetadataCheck, Parameteriz
     return values == null ? List.of() : values;
   }
 
-  private static String jsonText(List<String> values) {
+  private static String jsonArrayText(List<String> values) {
     return values.stream().collect(Collectors.joining("\", \"", "[\"", "\"]"));
   }
 
