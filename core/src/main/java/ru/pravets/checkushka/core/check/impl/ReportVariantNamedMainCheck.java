@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import ru.pravets.checkushka.core.check.CheckContext;
 import ru.pravets.checkushka.core.check.CheckMetadata;
 import ru.pravets.checkushka.core.check.CheckParameter;
+import ru.pravets.checkushka.core.check.CheckParameters;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.CheckTag;
 import ru.pravets.checkushka.core.check.CheckTarget;
@@ -171,15 +172,8 @@ public final class ReportVariantNamedMainCheck implements MetadataCheck, Paramet
 
   private static Set<String> normalize(List<String> names) {
     var normalized = new HashSet<String>();
-    if (names == null) {
-      return normalized;
-    }
-    names.stream()
-      .filter(Objects::nonNull)
-      .map(String::trim)
-      .filter(name -> !name.isEmpty())
-      .map(name -> name.toLowerCase(Locale.ROOT))
-      .forEach(normalized::add);
+    CheckParameters.normalized(names)
+      .forEach(name -> normalized.add(name.toLowerCase(Locale.ROOT)));
     return normalized;
   }
 
