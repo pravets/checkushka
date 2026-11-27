@@ -45,19 +45,21 @@ import ru.pravets.checkushka.core.source.ProjectLoader;
 class YoLetterInMetadataProjectTest {
 
   @Test
-  void findsLetterInNameAndSynonymOfDesignerObject() throws URISyntaxException {
+  void findsLetterInNameSynonymAndContainedObjectOfDesignerDump() throws URISyntaxException {
     var issues = issues(dump("designer-yo"), CheckSettings.defaults());
 
-    assertThat(issues).hasSize(2);
+    assertThat(issues).hasSize(3);
     assertThat(issues).extracting(CheckResult::message)
       .containsExactlyInAnyOrder(
         "Имя объекта \"Ёлка\" содержит букву \"ё\"",
-        "Синоним (en) объекта \"Ёлка\" содержит букву \"ё\"");
+        "Синоним (en) объекта \"Ёлка\" содержит букву \"ё\"",
+        "Имя объекта \"СтавкаЁ\" содержит букву \"ё\"");
     assertThat(issues).allSatisfy(issue -> {
-      assertThat(issue.location().mdoRef()).isEqualTo("Catalog.Ёлка");
       assertThat(issue.location().line()).isNull();
       assertThat(issue.location().file().getFileName().toString()).isEqualTo("Ёлка.xml");
     });
+    assertThat(issues).extracting(issue -> issue.location().mdoRef())
+      .contains("Catalog.Ёлка.Attribute.СтавкаЁ");
   }
 
   @Test
@@ -93,6 +95,40 @@ class YoLetterInMetadataProjectTest {
     assertThat(issues).hasSize(7);
     assertThat(issues).extracting(CheckResult::message)
       .contains("Комментарий объекта \"Ёлка\" содержит букву \"ё\"");
+  }
+
+  @Test
+  void commentOnlyConfigChecksOnlyComment() throws URISyntaxException {
+    var settings = settings(Map.of("properties", List.of("comment")), List.of());
+
+    var issues = issues(dump("edt-yo"), settings);
+
+    assertThat(issues).singleElement().satisfies(issue -> {
+      assertThat(issue.message()).isEqualTo("Комментарий объекта \"Ёлка\" содержит букву \"ё\"");
+      assertThat(issue.location().mdoRef()).isEqualTo("Catalog.Ёлка");
+    });
+  }
+
+  @Test
+  void topLevelScopeSkipsContainedObjects() throws URISyntaxException {
+    var settings = settings(Map.of("scope", "top-level"), List.of());
+
+    var issues = issues(dump("edt-yo"), settings);
+
+    assertThat(issues).hasSize(2);
+    assertThat(issues).extracting(issue -> issue.location().mdoRef())
+      .containsOnly("Catalog.Ёлка");
+  }
+
+  @Test
+  void languageFilterLimitsSynonym() throws URISyntaxException {
+    var settings = settings(Map.of("languages", List.of("ru")), List.of());
+
+    var issues = issues(dump("edt-yo"), settings);
+
+    assertThat(issues).hasSize(5);
+    assertThat(issues).extracting(CheckResult::message)
+      .doesNotContain("Синоним (en) объекта \"Ёлка\" содержит букву \"ё\"");
   }
 
   @Test

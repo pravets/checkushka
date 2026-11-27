@@ -11,5 +11,12 @@
 			</Synonym>
 			<Comment>комментарий с ё</Comment>
 		</Properties>
+		<ChildObjects>
+			<Attribute uuid="00000000-0000-0000-0000-000000000203">
+				<Properties>
+					<Name>СтавкаЁ</Name>
+				</Properties>
+			</Attribute>
+		</ChildObjects>
 	</Catalog>
 </MetaDataObject>

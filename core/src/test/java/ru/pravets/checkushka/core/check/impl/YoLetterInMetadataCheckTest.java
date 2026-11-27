@@ -127,6 +127,22 @@ class YoLetterInMetadataCheckTest {
   }
 
   @Test
+  void commentOnlyConfigChecksOnlyComment() {
+    var catalog = Catalog.builder()
+      .name("Ёлка")
+      .mdoReference(ref("Catalog.Ёлка"))
+      .synonym(MultiLanguageString.create("ru", "Ёлка"))
+      .comment("комментарий с ё")
+      .build();
+
+    var results = analyze(catalog, options(List.of("ё"), List.of("comment"), "all", false, List.of()));
+
+    assertThat(results).singleElement().satisfies(issue ->
+      assertThat(issue.message())
+        .isEqualTo("Комментарий объекта \"Ёлка\" содержит букву \"ё\""));
+  }
+
+  @Test
   void checksContainedObjects() {
     var catalog = Catalog.builder()
       .name("Подарки")
@@ -164,6 +180,59 @@ class YoLetterInMetadataCheckTest {
         "Catalog.Подарки.Command.СоздатьЁ",
         "Catalog.Подарки.Template.МакетЁ");
     assertThat(results).allSatisfy(issue -> assertThat(issue.location().line()).isNull());
+  }
+
+  @Test
+  void topLevelScopeSkipsContainedObjects() {
+    var catalog = catalogWithAttribute("СтавкаЁ");
+
+    assertThat(analyze(catalog, options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES,
+      "top-level", false, List.of()))).isEmpty();
+    assertThat(analyze(catalog, options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES,
+      "all", false, List.of()))).hasSize(1);
+  }
+
+  @Test
+  void unknownScopeFallsBackToAll() {
+    var catalog = catalogWithAttribute("СтавкаЁ");
+
+    assertThat(analyze(catalog, options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES,
+      "everything", false, List.of()))).hasSize(1);
+  }
+
+  @Test
+  void caseSensitiveMatchesOnlyConfiguredCase() {
+    var lower = options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES, "all", true, List.of());
+
+    assertThat(analyze(catalog("Ёлка"), lower)).isEmpty();
+    assertThat(analyze(catalog("ёлка"), lower)).singleElement().satisfies(issue ->
+      assertThat(issue.message()).isEqualTo("Имя объекта \"ёлка\" содержит букву \"ё\""));
+
+    var upper = options(List.of("Ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES, "all", true, List.of());
+
+    assertThat(analyze(catalog("Ёлка"), upper)).singleElement();
+    assertThat(analyze(catalog("ёлка"), upper)).isEmpty();
+  }
+
+  @Test
+  void languageFilterLimitsSynonym() {
+    var synonym = MultiLanguageString.create(Set.of(
+      MultiLanguageString.Entry.create("ru", "Ёлка"),
+      MultiLanguageString.Entry.create("en", "Gift Ё")));
+    var catalog = Catalog.builder()
+      .name("Дерево")
+      .mdoReference(ref("Catalog.Дерево"))
+      .synonym(synonym)
+      .build();
+
+    var russian = analyze(catalog, options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES,
+      "all", false, List.of("RU")));
+
+    assertThat(russian).singleElement().satisfies(issue ->
+      assertThat(issue.message())
+        .isEqualTo("Синоним (ru) объекта \"Дерево\" содержит букву \"ё\""));
+    assertThat(analyze(catalog, options(List.of("ё"), YoLetterInMetadataCheck.DEFAULT_PROPERTIES,
+      "all", false, List.of()))).hasSize(2);
   }
 
   @Test
@@ -216,13 +285,16 @@ class YoLetterInMetadataCheckTest {
   }
 
   @Test
-  void parametersDescribeLettersAndProperties() {
+  void parametersDescribeAllOptions() {
     var parameters = new YoLetterInMetadataCheck().parameters();
 
     assertThat(parameters).extracting(CheckParameter::name)
-      .containsExactly("letters", "properties");
+      .containsExactly("letters", "properties", "scope", "caseSensitive", "languages");
     assertThat(parameters.get(0).defaultValue()).isEqualTo("[\"ё\"]");
     assertThat(parameters.get(1).defaultValue()).isEqualTo("[\"name\", \"synonym\"]");
+    assertThat(parameters.get(2).defaultValue()).isEqualTo("\"all\"");
+    assertThat(parameters.get(3).defaultValue()).isEqualTo("false");
+    assertThat(parameters.get(4).defaultValue()).isEqualTo("[]");
   }
 
   private static Catalog catalog(String name) {
@@ -232,8 +304,29 @@ class YoLetterInMetadataCheckTest {
       .build();
   }
 
+  private static Catalog catalogWithAttribute(String attributeName) {
+    return Catalog.builder()
+      .name("Подарки")
+      .mdoReference(ref("Catalog.Подарки"))
+      .attribute(ObjectAttribute.builder()
+        .name(attributeName)
+        .mdoReference(ref("Catalog.Подарки.Attribute." + attributeName))
+        .build())
+      .build();
+  }
+
+  private static YoLetterInMetadataCheck.Options options(List<String> letters, List<String> properties,
+                                                         String scope, boolean caseSensitive,
+                                                         List<String> languages) {
+    return new YoLetterInMetadataCheck.Options(letters, properties, scope, caseSensitive, languages);
+  }
+
   private static List<CheckResult> analyze(MD object, List<String> letters, List<String> properties) {
     return YoLetterInMetadataCheck.analyze(object, letters, properties, FILE);
+  }
+
+  private static List<CheckResult> analyze(MD object, YoLetterInMetadataCheck.Options options) {
+    return YoLetterInMetadataCheck.analyze(object, options, FILE);
   }
 
   private static MdoReference ref(String value) {
