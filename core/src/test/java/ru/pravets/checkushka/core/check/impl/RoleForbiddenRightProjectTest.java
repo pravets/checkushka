@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import ru.pravets.checkushka.core.check.CheckParameters;
 import ru.pravets.checkushka.core.check.CheckResult;
 import ru.pravets.checkushka.core.check.Severity;
@@ -45,20 +47,23 @@ import ru.pravets.checkushka.core.engine.IgnoreRule;
 import ru.pravets.checkushka.core.source.ProjectLoader;
 
 /**
- * Сквозная проверка на минимальной выгрузке конструктора: загрузчик, mdclasses 0.22 и проверка
+ * Сквозная проверка на минимальных выгрузках обоих форматов: загрузчик, mdclasses 0.22 и проверка
  * вместе. Отдельно подтверждается, что право уровня конфигурации приходит обычным ObjectRight.
  */
 class RoleForbiddenRightProjectTest {
 
-  @Test
-  void defaultSettingsReportForbiddenRightsAndSkipExcludedRole() throws URISyntaxException {
-    var issues = issues(dump(), CheckSettings.defaults());
+  @ParameterizedTest
+  @ValueSource(strings = {"designer-roles", "edt-roles"})
+  void defaultSettingsReportForbiddenRightsAndSkipExcludedRole(String dump)
+      throws URISyntaxException {
+    var issues = issues(dump(dump), CheckSettings.defaults());
 
     assertThat(issues).hasSize(2);
     assertThat(issues).allSatisfy(issue -> {
       assertThat(issue.location().mdoRef()).isEqualTo("Role.Оператор");
       assertThat(issue.location().line()).isNull();
-      assertThat(issue.location().file().getFileName().toString()).isEqualTo("Оператор.xml");
+      assertThat(issue.location().file().getFileName().toString())
+        .isEqualTo(expectedRoleFile(dump));
     });
     assertThat(issues).extracting(CheckResult::message)
       .anySatisfy(message -> assertThat(message).contains("Администрирование"))
@@ -67,7 +72,7 @@ class RoleForbiddenRightProjectTest {
 
   @Test
   void customRightsReplaceDefaults() throws URISyntaxException {
-    var issues = issues(dump(), settings(List.of("READ"), List.of("ПолныеПрава")));
+    var issues = issues(dump("designer-roles"), settings(List.of("READ"), List.of("ПолныеПрава")));
 
     assertThat(issues).singleElement().satisfies(issue ->
       assertThat(issue.message()).contains("Чтение"));
@@ -78,12 +83,12 @@ class RoleForbiddenRightProjectTest {
     var settings = new CheckSettings(ChecksMode.ON, Set.of(), Map.of(), Map.of(), Severity.INFO,
       List.of(new IgnoreRule(RoleForbiddenRightCheck.KEY, "Role.Оператор", "тест")), Set.of());
 
-    assertThat(issues(dump(), settings)).isEmpty();
+    assertThat(issues(dump("designer-roles"), settings)).isEmpty();
   }
 
   @Test
   void parametersComeFromCheckushkaJson(@TempDir Path projectDir) throws Exception {
-    copy(dump(), projectDir);
+    copy(dump("designer-roles"), projectDir);
     var config = projectDir.resolve("checkushka.json");
 
     Files.writeString(config, """
@@ -131,9 +136,13 @@ class RoleForbiddenRightProjectTest {
       Map.of(), Severity.INFO, List.of(), Set.of());
   }
 
-  private static Path dump() throws URISyntaxException {
+  private static Path dump(String name) throws URISyntaxException {
     return Path.of(Objects.requireNonNull(
-      RoleForbiddenRightProjectTest.class.getResource("/dumps/designer-roles")).toURI());
+      RoleForbiddenRightProjectTest.class.getResource("/dumps/" + name)).toURI());
+  }
+
+  private static String expectedRoleFile(String dump) {
+    return "edt-roles".equals(dump) ? "Оператор.mdo" : "Оператор.xml";
   }
 
   private static void copy(Path source, Path target) throws IOException {
