@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import ru.pravets.checkushka.core.check.CheckMetadata;
 import ru.pravets.checkushka.core.check.MetadataCheck;
+import ru.pravets.checkushka.core.check.impl.DocumentCommentAttributeCheck;
 import ru.pravets.checkushka.core.check.impl.MetadataOrderCheck;
 import ru.pravets.checkushka.core.check.impl.ReportVariantNamedMainCheck;
 import ru.pravets.checkushka.core.check.impl.RequiredRolesCheck;
@@ -74,7 +75,8 @@ public final class CheckRegistry {
       new RoleForbiddenRightCheck(),
       new ReportVariantNamedMainCheck(),
       new RequiredRolesCheck(),
-      new SubsystemMembershipCheck()));
+      new SubsystemMembershipCheck(),
+      new DocumentCommentAttributeCheck()));
   }
 
   /**
