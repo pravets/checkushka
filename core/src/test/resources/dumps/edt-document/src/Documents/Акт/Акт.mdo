@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Document xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="00000000-0000-0000-0000-000000000221">
+  <name>Акт</name>
+  <attributes uuid="00000000-0000-0000-0000-000000000222">
+    <name>Комментарий</name>
+    <type>
+      <types>String</types>
+      <stringQualifiers>
+        <length>0</length>
+      </stringQualifiers>
+    </type>
+    <multiLine>false</multiLine>
+  </attributes>
+</mdclass:Document>
