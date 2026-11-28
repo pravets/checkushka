@@ -76,6 +76,7 @@ public final class CheckRunner {
     var activeChecks = activeChecks();
     warnInvalidParameters(activeChecks);
     var found = new ArrayList<CheckResult>();
+    var failures = new ArrayList<AnalysisResult.CheckFailure>();
     var units = 0;
 
     for (var target : CheckTarget.values()) {
@@ -85,7 +86,7 @@ public final class CheckRunner {
       if (targetChecks.isEmpty()) {
         continue;
       }
-      units += analyze(project, target, targetChecks, found);
+      units += analyze(project, target, targetChecks, found, failures);
     }
 
     var issues = CheckResults.distinct(found).stream()
@@ -95,7 +96,8 @@ public final class CheckRunner {
       .toList();
 
     return new AnalysisResult(issues,
-      new AnalysisResult.Statistics(activeChecks.size(), units, Duration.between(started, Instant.now())));
+      new AnalysisResult.Statistics(activeChecks.size(), units, Duration.between(started, Instant.now())),
+      failures);
   }
 
   private List<MetadataCheck> activeChecks() {
@@ -133,11 +135,13 @@ public final class CheckRunner {
     return false;
   }
 
-  private int analyze(Project project, CheckTarget target, List<MetadataCheck> checks, List<CheckResult> sink) {
+  private int analyze(Project project, CheckTarget target, List<MetadataCheck> checks,
+      List<CheckResult> sink, List<AnalysisResult.CheckFailure> failures) {
     return switch (target) {
       case CONFIGURATION -> {
         for (var check : checks) {
-          sink.addAll(runCheck(check, new CheckContext(project, null, null, settings.parametersFor(keyOf(check)))));
+          sink.addAll(runCheck(check, new CheckContext(project, null, null, settings.parametersFor(keyOf(check))),
+            failures));
         }
         yield 1;
       }
@@ -146,7 +150,7 @@ public final class CheckRunner {
         for (var object : objects) {
           for (var check : checks) {
             sink.addAll(runCheck(check,
-              new CheckContext(project, object, null, settings.parametersFor(keyOf(check)))));
+              new CheckContext(project, object, null, settings.parametersFor(keyOf(check))), failures));
           }
         }
         yield objects.size();
@@ -156,7 +160,7 @@ public final class CheckRunner {
         for (var form : forms) {
           for (var check : checks) {
             sink.addAll(runCheck(check,
-              new CheckContext(project, null, form, settings.parametersFor(keyOf(check)))));
+              new CheckContext(project, null, form, settings.parametersFor(keyOf(check))), failures));
           }
         }
         yield forms.size();
@@ -166,7 +170,7 @@ public final class CheckRunner {
         for (var role : roles) {
           for (var check : checks) {
             sink.addAll(runCheck(check,
-              new CheckContext(project, role, null, settings.parametersFor(keyOf(check)))));
+              new CheckContext(project, role, null, settings.parametersFor(keyOf(check))), failures));
           }
         }
         yield roles.size();
@@ -174,7 +178,15 @@ public final class CheckRunner {
     };
   }
 
-  private List<CheckResult> runCheck(MetadataCheck check, CheckContext context) {
+  /**
+   * Выполняет одну проверку на одной единице анализа.
+   *
+   * <p>Исключение проверки не превращается в штатное отсутствие замечаний: сбой фиксируется
+   * в {@code failures}, а итоговый результат помечается неполным ({@link AnalysisResult#hasFailures()}).
+   * Замечания остальных проверок при этом сохраняются.
+   */
+  private List<CheckResult> runCheck(MetadataCheck check, CheckContext context,
+      List<AnalysisResult.CheckFailure> failures) {
     var metadata = CheckRegistry.metadataOf(check);
     try {
       return check.check(context).stream()
@@ -182,8 +194,25 @@ public final class CheckRunner {
         .toList();
     } catch (RuntimeException e) {
       LOGGER.warn("Проверка {} завершилась ошибкой: {}", metadata.key(), e.getMessage(), e);
+      failures.add(new AnalysisResult.CheckFailure(metadata.key(), unitName(context), e.getMessage()));
       return List.of();
     }
+  }
+
+  private static String unitName(CheckContext context) {
+    if (context.form() != null) {
+      var form = context.form();
+      var name = form.getName() != null ? form.getName() : "Form";
+      // Имя формы не уникально: без владельца сбои одинаковых форм разных объектов неразличимы
+      return context.project().ownerOf(form)
+        .map(owner -> owner + "." + name)
+        .orElse(name);
+    }
+    if (context.mdo() != null) {
+      var ref = context.mdo().getMdoRef();
+      return ref != null ? ref.toString() : String.valueOf(context.mdo().getName());
+    }
+    return "Configuration";
   }
 
   private static CheckResult withSeverity(CheckResult result, ru.pravets.checkushka.core.check.Severity severity) {

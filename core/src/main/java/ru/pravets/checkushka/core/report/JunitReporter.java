@@ -28,7 +28,8 @@ import ru.pravets.checkushka.core.AnalysisResult;
 import ru.pravets.checkushka.core.check.CheckResult;
 
 /**
- * Отчёт в формате JUnit XML: каждая проверка — класс теста, каждое замечание — падение.
+ * Отчёт в формате JUnit XML: каждая проверка — класс теста, каждое замечание — падение,
+ * каждая ошибка выполнения проверки — ошибка ({@code error}) отдельного testcase.
  */
 public final class JunitReporter implements Reporter {
 
@@ -40,13 +41,16 @@ public final class JunitReporter implements Reporter {
       writer.writeStartDocument("UTF-8", "1.0");
       writer.writeStartElement("testsuite");
       writer.writeAttribute("name", "checkushka");
-      writer.writeAttribute("tests", String.valueOf(result.issues().size()));
+      writer.writeAttribute("tests", String.valueOf(result.issues().size() + result.failures().size()));
       writer.writeAttribute("failures", String.valueOf(result.issues().size()));
-      writer.writeAttribute("errors", "0");
+      writer.writeAttribute("errors", String.valueOf(result.failures().size()));
       writer.writeAttribute("time", seconds(result));
 
       for (var issue : result.issues()) {
         writeCase(writer, issue);
+      }
+      for (var failure : result.failures()) {
+        writeError(writer, failure);
       }
 
       writer.writeEndElement();
@@ -69,6 +73,23 @@ public final class JunitReporter implements Reporter {
     writer.writeAttribute("message", issue.message());
     writer.writeAttribute("type", issue.severity().name());
     writer.writeCharacters(issue.location().file() + " " + issue.message());
+    writer.writeEndElement();
+
+    writer.writeEndElement();
+  }
+
+  private static void writeError(XMLStreamWriter writer, AnalysisResult.CheckFailure failure)
+      throws XMLStreamException {
+    writer.writeStartElement("testcase");
+    writer.writeAttribute("classname", "checkushka." + failure.checkKey());
+    writer.writeAttribute("name", failure.unit());
+    writer.writeAttribute("time", "0");
+
+    writer.writeStartElement("error");
+    writer.writeAttribute("message", "Проверка не выполнилась: "
+      + (failure.message() == null ? "без сообщения" : failure.message()));
+    writer.writeAttribute("type", "CheckExecutionError");
+    writer.writeCharacters(failure.unit() + ": проверка завершилась ошибкой, анализ неполный");
     writer.writeEndElement();
 
     writer.writeEndElement();

@@ -50,6 +50,15 @@ public final class ConsoleReporter implements Reporter {
       out.println();
       out.printf("Замечаний: %d%s%n", result.issues().size(), bySeverity(result));
     }
+
+    if (result.hasFailures()) {
+      out.println();
+      out.printf("Ошибки выполнения проверок: %d (анализ неполный)%n", result.failures().size());
+      for (var failure : result.failures()) {
+        out.printf("  %s — %s: %s%n", failure.checkKey(), failure.unit(),
+          failure.message() == null ? "без сообщения" : failure.message());
+      }
+    }
     out.flush();
   }
 

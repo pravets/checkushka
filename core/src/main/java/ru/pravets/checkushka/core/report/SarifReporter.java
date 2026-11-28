@@ -63,6 +63,20 @@ public final class SarifReporter implements Reporter {
       results.add(toResult(issue, context));
     }
 
+    if (result.hasFailures()) {
+      var invocation = run.putArray("invocations").addObject();
+      invocation.put("executionSuccessful", false);
+      var notifications = invocation.putArray("toolExecutionNotifications");
+      for (var failure : result.failures()) {
+        var notification = notifications.addObject();
+        notification.put("level", "error");
+        notification.putObject("message").put("text",
+          "Проверка " + failure.checkKey() + " завершилась ошибкой на " + failure.unit()
+            + ": " + (failure.message() == null ? "без сообщения" : failure.message()));
+        notification.putObject("descriptor").put("id", failure.checkKey());
+      }
+    }
+
     write(root, context);
   }
 

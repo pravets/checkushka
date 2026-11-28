@@ -32,8 +32,14 @@ import ru.pravets.checkushka.core.check.Severity;
  */
 public final class JsonReporter implements Reporter {
 
-  /** Версия схемы отчёта. */
-  public static final int SCHEMA_VERSION = 1;
+  /**
+   * Версия схемы отчёта.
+   *
+   * <p>Версия 2: добавлены {@code summary.failures} и массив {@code failures} с ошибками
+   * выполнения проверок — по ним машинные потребители отличают «замечаний нет» от
+   * «проверка не выполнилась».
+   */
+  public static final int SCHEMA_VERSION = 2;
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -46,6 +52,7 @@ public final class JsonReporter implements Reporter {
     var statistics = result.statistics();
     var summary = root.putObject("summary");
     summary.put("issues", result.issues().size());
+    summary.put("failures", result.failures().size());
     summary.put("checksRun", statistics.checksRun());
     summary.put("objectsAnalyzed", statistics.objectsAnalyzed());
     summary.put("durationMs", statistics.duration().toMillis());
@@ -71,6 +78,16 @@ public final class JsonReporter implements Reporter {
         node.put("mdoRef", issue.location().mdoRef());
       }
       node.put("minutesToFix", issue.minutesToFix());
+    }
+
+    if (result.hasFailures()) {
+      var failures = root.putArray("failures");
+      for (var failure : result.failures()) {
+        var node = failures.addObject();
+        node.put("check", failure.checkKey());
+        node.put("unit", failure.unit());
+        node.put("message", failure.message());
+      }
     }
 
     try {

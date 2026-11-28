@@ -42,7 +42,8 @@ import ru.pravets.checkushka.core.source.SourceFormat;
  * Команда анализа конфигурации.
  *
  * <p>Коды возврата: {@code 0} — замечаний не ниже порога нет, {@code 1} — замечания есть,
- * {@code 2} — ошибка чтения проекта или конфигурации.
+ * {@code 2} — ошибка чтения проекта или конфигурации либо ошибка выполнения проверок
+ * (анализ неполный).
  */
 @CommandLine.Command(
   name = "check",
@@ -132,6 +133,10 @@ public final class CheckCommand implements Callable<Integer> {
           .report(result, new ReportContext(root, out));
       }
 
+      if (result.hasFailures()) {
+        System.err.println("Анализ неполный: ошибки выполнения проверок: " + result.failures().size());
+        return EXIT_ERROR;
+      }
       return result.countAtLeast(Severity.parse(failOn, Severity.MINOR)) > 0 ? EXIT_ISSUES : EXIT_OK;
     } catch (ConfigException | ProjectException | IllegalArgumentException e) {
       System.err.println("Ошибка: " + e.getMessage());
