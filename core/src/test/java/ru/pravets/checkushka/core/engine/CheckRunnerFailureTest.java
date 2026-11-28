@@ -23,6 +23,7 @@ package ru.pravets.checkushka.core.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github._1c_syntax.bsl.mdo.Catalog;
+import com.github._1c_syntax.bsl.mdo.children.ObjectForm;
 import com.github._1c_syntax.bsl.mdclasses.Configuration;
 import com.github._1c_syntax.bsl.mdclasses.Solution;
 import com.github._1c_syntax.bsl.types.MdoReference;
@@ -70,6 +71,28 @@ class CheckRunnerFailureTest {
   }
 
   @Test
+  void formFailureUnitContainsOwner() {
+    var form = ObjectForm.builder()
+      .name("ФормаЭлемента")
+      .mdoReference(MdoReference.create("Catalog.Товары.Form.ФормаЭлемента"))
+      .owner(MdoReference.create("Catalog.Товары"))
+      .build();
+    var catalog = Catalog.builder()
+      .name("Товары")
+      .mdoReference(MdoReference.create("Catalog.Товары"))
+      .form(form)
+      .build();
+    var project = project(catalog);
+    var runner = new CheckRunner(
+      new CheckRegistry(List.of(new ThrowingFormCheck())), CheckSettings.defaults());
+
+    var result = runner.run(project);
+
+    assertThat(result.failures()).singleElement()
+      .satisfies(failure -> assertThat(failure.unit()).isEqualTo("Catalog.Товары.ФормаЭлемента"));
+  }
+
+  @Test
   void cleanRunHasNoFailures() {
     var result = new CheckRunner(
       new CheckRegistry(List.of(new ReportingCheck())), CheckSettings.defaults()).run(project());
@@ -79,10 +102,13 @@ class CheckRunnerFailureTest {
   }
 
   private Project project() {
-    var catalog = Catalog.builder()
+    return project(Catalog.builder()
       .name("Товары")
       .mdoReference(MdoReference.create("Catalog.Товары"))
-      .build();
+      .build());
+  }
+
+  private Project project(Catalog catalog) {
     var configuration = Configuration.builder().child(catalog).build();
     var solution = Solution.builder().mergedConfiguration(configuration).build();
     var configurationFile = tempDir.resolve("Configuration.xml");
@@ -97,6 +123,15 @@ class CheckRunnerFailureTest {
     @Override
     public List<CheckResult> check(CheckContext context) {
       throw new IllegalStateException("сломалась");
+    }
+  }
+
+  @CheckMetadata(key = "ThrowingFormCheck", name = "Падающая проверка форм", targets = CheckTarget.FORM)
+  private static final class ThrowingFormCheck implements MetadataCheck {
+
+    @Override
+    public List<CheckResult> check(CheckContext context) {
+      throw new IllegalStateException("сломалась на форме");
     }
   }
 

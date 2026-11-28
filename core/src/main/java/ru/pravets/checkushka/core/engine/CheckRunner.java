@@ -201,8 +201,12 @@ public final class CheckRunner {
 
   private static String unitName(CheckContext context) {
     if (context.form() != null) {
-      var name = context.form().getName();
-      return name != null ? name : "Form";
+      var form = context.form();
+      var name = form.getName() != null ? form.getName() : "Form";
+      // Имя формы не уникально: без владельца сбои одинаковых форм разных объектов неразличимы
+      return context.project().ownerOf(form)
+        .map(owner -> owner + "." + name)
+        .orElse(name);
     }
     if (context.mdo() != null) {
       var ref = context.mdo().getMdoRef();
