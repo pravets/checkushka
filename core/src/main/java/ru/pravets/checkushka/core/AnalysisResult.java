@@ -30,11 +30,23 @@ import ru.pravets.checkushka.core.check.Severity;
  *
  * @param issues     найденные замечания в стабильном порядке
  * @param statistics статистика запуска
+ * @param failures   ошибки выполнения проверок; непустой список означает, что анализ неполный
  */
-public record AnalysisResult(List<CheckResult> issues, Statistics statistics) {
+public record AnalysisResult(List<CheckResult> issues, Statistics statistics, List<CheckFailure> failures) {
 
   public AnalysisResult {
     issues = List.copyOf(issues);
+    failures = List.copyOf(failures);
+  }
+
+  /**
+   * Результат без ошибок выполнения проверок.
+   *
+   * @param issues     найденные замечания
+   * @param statistics статистика запуска
+   */
+  public AnalysisResult(List<CheckResult> issues, Statistics statistics) {
+    this(issues, statistics, List.of());
   }
 
   /**
@@ -44,6 +56,15 @@ public record AnalysisResult(List<CheckResult> issues, Statistics statistics) {
    */
   public boolean isEmpty() {
     return issues.isEmpty();
+  }
+
+  /**
+   * Признак того, что часть проверок завершилась ошибкой и анализ неполный.
+   *
+   * @return {@code true}, если были ошибки выполнения проверок
+   */
+  public boolean hasFailures() {
+    return !failures.isEmpty();
   }
 
   /**
@@ -64,5 +85,15 @@ public record AnalysisResult(List<CheckResult> issues, Statistics statistics) {
    * @param duration        длительность
    */
   public record Statistics(int checksRun, int objectsAnalyzed, Duration duration) {
+  }
+
+  /**
+   * Ошибка выполнения одной проверки на одной единице анализа.
+   *
+   * @param checkKey ключ проверки
+   * @param unit     единица анализа: ссылка на объект метаданных, имя формы или {@code Configuration}
+   * @param message  сообщение исключения (может быть {@code null}, если исключение без сообщения)
+   */
+  public record CheckFailure(String checkKey, String unit, String message) {
   }
 }

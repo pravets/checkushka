@@ -93,4 +93,40 @@ class ReportersTest {
     assertThat(node.path("issues").get(0).path("line").asInt()).isEqualTo(12);
     assertThat(node.path("issues").get(0).path("mdoRef").asText()).isEqualTo("CommonModule.МодульА");
   }
+
+  private AnalysisResult resultWithFailures() {
+    return new AnalysisResult(List.of(),
+      new AnalysisResult.Statistics(3, 4, Duration.ofMillis(25)),
+      List.of(new AnalysisResult.CheckFailure("MetadataOrder", "Catalog.Товары", "сломалась")));
+  }
+
+  @Test
+  void jsonReporterWritesFailures() throws Exception {
+    var buffer = new ByteArrayOutputStream();
+    var out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
+
+    new JsonReporter().report(resultWithFailures(), new ReportContext(root, out));
+
+    var node = new ObjectMapper().readTree(buffer.toString(StandardCharsets.UTF_8));
+    assertThat(node.path("summary").path("issues").asInt()).isEqualTo(0);
+    assertThat(node.path("summary").path("failures").asInt()).isEqualTo(1);
+    assertThat(node.path("failures")).hasSize(1);
+    var failure = node.path("failures").get(0);
+    assertThat(failure.path("check").asText()).isEqualTo("MetadataOrder");
+    assertThat(failure.path("unit").asText()).isEqualTo("Catalog.Товары");
+    assertThat(failure.path("message").asText()).isEqualTo("сломалась");
+  }
+
+  @Test
+  void consoleReporterMarksIncompleteAnalysis() {
+    var buffer = new ByteArrayOutputStream();
+    var out = new PrintStream(buffer, true, StandardCharsets.UTF_8);
+
+    new ConsoleReporter().report(resultWithFailures(), new ReportContext(root, out));
+
+    assertThat(buffer.toString(StandardCharsets.UTF_8))
+      .contains("Замечаний не найдено")
+      .contains("Ошибки выполнения проверок: 1 (анализ неполный)")
+      .contains("MetadataOrder — Catalog.Товары: сломалась");
+  }
 }

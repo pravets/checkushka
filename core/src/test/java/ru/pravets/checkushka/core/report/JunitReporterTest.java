@@ -76,6 +76,26 @@ class JunitReporterTest {
     assertThat(document.getDocumentElement().getAttribute("tests")).isEqualTo("0");
   }
 
+  @Test
+  void writesCheckFailuresAsErrors() throws Exception {
+    var bytes = render(new AnalysisResult(List.of(),
+      new AnalysisResult.Statistics(1, 1, Duration.ZERO),
+      List.of(new AnalysisResult.CheckFailure("ThrowingCheck", "Catalog.Товары", "сломалась"))));
+
+    var document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+      .parse(new ByteArrayInputStream(bytes));
+    var suite = document.getDocumentElement();
+    assertThat(suite.getAttribute("tests")).isEqualTo("1");
+    assertThat(suite.getAttribute("failures")).isEqualTo("0");
+    assertThat(suite.getAttribute("errors")).isEqualTo("1");
+
+    var errors = document.getElementsByTagName("error");
+    assertThat(errors.getLength()).isEqualTo(1);
+    var error = (org.w3c.dom.Element) errors.item(0);
+    assertThat(error.getAttribute("message")).contains("сломалась");
+    assertThat(error.getAttribute("type")).isEqualTo("CheckExecutionError");
+  }
+
   private byte[] render(AnalysisResult result) {
     var buffer = new ByteArrayOutputStream();
     new JunitReporter().report(result,
